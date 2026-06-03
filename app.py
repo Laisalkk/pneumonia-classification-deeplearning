@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import importlib.util
 import torch
 import numpy as np
 import pandas as pd
@@ -10,33 +9,20 @@ import matplotlib.pyplot as plt
 import shap
 from PIL import Image
 
-# ============================================================
-# PERBAIKAN RADIKAL: Load Modul config.py Menggunakan Path Fisik Absolut
-# (Menghindari Tabrakan dengan cv2/config.py Secara Total)
-# ============================================================
+# Hubungkan folder Source_Code ke sistem path Python
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(BASE_DIR, 'Source_Code', 'config.py')
-
-if not os.path.exists(CONFIG_PATH):
-    st.error(f"Berkas konfigurasi tidak ditemukan di: {CONFIG_PATH}")
-    st.stop()
-
-# Load config.py secara paksa lewat file path
-spec = importlib.util.spec_from_file_location("medical_config", CONFIG_PATH)
-medical_config = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(medical_config)
-
-# Ambil variabel global dari file config proyek Anda yang sudah di-load
-CLASS_NAMES = medical_config.CLASS_NAMES
-IMG_SIZE = medical_config.IMG_SIZE
-
-# Masukkan folder Source_Code ke sys.path untuk fungsi internal lainnya (models, augmentation)
 SOURCE_CODE_DIR = os.path.join(BASE_DIR, 'Source_Code')
 if SOURCE_CODE_DIR not in sys.path:
     sys.path.insert(0, SOURCE_CODE_DIR)
 
+# Import modul dengan aman lewat proxy config yang baru kita buat
+import config as medical_config
 from models import get_model
 from augmentation import get_transforms
+
+# Ambil variabel global dari file config
+CLASS_NAMES = medical_config.CLASS_NAMES
+IMG_SIZE = medical_config.IMG_SIZE
 
 # Config Halaman Utama Streamlit
 st.set_page_config(
