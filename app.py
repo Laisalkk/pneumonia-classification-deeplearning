@@ -9,16 +9,26 @@ import matplotlib.pyplot as plt
 import shap
 from PIL import Image
 
-# Daftarkan folder Source_Code ke sistem path Python agar modul internal bisa di-import
+# ============================================================
+# SOLUSI KONFLIK CV2: Daftarkan Jalur Source_Code Secara Absolut
+# ============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(BASE_DIR, 'Source_Code'))
+SOURCE_CODE_DIR = os.path.join(BASE_DIR, 'Source_Code')
 
-# Import modul internal Anda dengan penyesuaian fungsi
-from config import CLASS_NAMES, IMG_SIZE
+# Masukkan ke indeks 0 agar Python memprioritaskan folder proyek Anda
+if SOURCE_CODE_DIR not in sys.path:
+    sys.path.insert(0, SOURCE_CODE_DIR)
+
+# Gunakan cara import yang aman agar tidak bertabrakan dengan config cv2
+import config as medical_config
 from models import get_model
-from augmentation import get_transforms  # Menggunakan fungsi utama standar Anda
+from augmentation import get_transforms
 
-# Config Halaman Streamlit
+# Ambil variabel global dari file config proyek Anda
+CLASS_NAMES = medical_config.CLASS_NAMES
+IMG_SIZE = medical_config.IMG_SIZE
+
+# Config Halaman Utama Streamlit
 st.set_page_config(
     page_title="Pneumonia Detection & XAI Dashboard",
     page_icon="🩺",
@@ -26,24 +36,24 @@ st.set_page_config(
 )
 
 # ============================================================
-# CACHED FUNCTIONS (Agar aplikasi web berjalan cepat)
+# CACHED FUNCTIONS (Akselerasi Pemuatan Model & SHAP)
 # ============================================================
 
 @st.cache_resource
 def load_trained_model():
-    """Fungsi untuk memuat model terbaik E5_EfficientNetB0_best"""
+    """Memuat bobot model terbaik E5_EfficientNetB0_best.pth secara aman"""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # PERBAIKAN 1: Menyesuaikan nama file dengan akhiran _best.pth sesuai repositori
+    # Ambil file model terbaik yang ada di folder checkpoints
     checkpoint_path = os.path.join(BASE_DIR, "Results", "checkpoints", "E5_EfficientNetB0_best.pth")
     
-    # Bangun arsitektur kosong
+    # Bangun struktur arsitektur dasar (3 Kelas: Normal, Bacterial, Viral)
     model = get_model(model_name="EfficientNetB0", num_classes=3)
     
     if os.path.exists(checkpoint_path):
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     else:
-        st.error(f"File model '{checkpoint_path}' tidak ditemukan! Pastikan folder Results/checkpoints sudah benar di GitHub.")
+        st.error(f"Berkas model '{checkpoint_path}' tidak ditemukan di GitHub Anda! Pastikan folder Results/checkpoints/ sudah benar.")
         st.stop()
         
     model = model.to(device)
@@ -52,17 +62,17 @@ def load_trained_model():
 
 @st.cache_resource
 def create_shap_explainer(_model, device):
-    """Membuat basis reference data (background) tiruan untuk kestabilan kalkulasi SHAP"""
+    """Inisialisasi basis data referensi konstan untuk kalkulasi SHAP di web"""
     background = torch.zeros(3, 3, IMG_SIZE, IMG_SIZE).to(device)
     explainer = shap.GradientExplainer(_model, background)
     return explainer
 
-# Load Model dan Explainer secara global saat web dibuka
+# Muat model dan pengonfirmasi akuntabilitas secara global saat web pertama kali dibuka
 model, device = load_trained_model()
 explainer = create_shap_explainer(model, device)
 
 # ============================================================
-# USER INTERFACE (Tampilan Web)
+# USER INTERFACE (Tampilan Web Dashboard)
 # ============================================================
 
 st.title("🩺 Pneumonia Detection App with Explainable AI")
@@ -72,21 +82,21 @@ Aplikasi web ini mendeteksi penyakit **Pneumonia (Bakteri/Virus)** menggunakan m
 
 st.write("---")
 
-# Widget Upload Gambar
+# Widget Pengunggah Berkas Gambar rontgen
 uploaded_file = st.file_uploader("Unggah Citra Rontgen Paru-Paru (X-Ray Dada)...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # 1. Tampilkan Gambar Asli yang diunggah User
-    image = Image.open(uploaded_file).convert("RGB")  # Convert ke RGB untuk kecocokan model 3-channel
+    # 1. Konversi ke RGB agar sesuai dengan dimensi channel input [3, 224, 224] model Anda
+    image = Image.open(uploaded_file).convert("RGB")
     
     col1, col2 = st.columns(2)
     with col1:
         st.image(image, caption="Gambar Rontgen Unggahan", use_container_width=True)
     
-    # PERBAIKAN 2: Mengambil transformasi pengujian dari fungsi get_transforms() Anda
+    # 2. Preprocessing Gambar Mengikuti Transformasi Proyek Anda
     _, _, test_transform = get_transforms()
-    img_tensor = test_transform(image) # Mengubah menjadi tensor 3-channel terstandardisasi
-    img_tensor = img_tensor.unsqueeze(0) # Tambah dimensi batch -> [1, 3, 224, 224]
+    img_tensor = test_transform(image) 
+    img_tensor = img_tensor.unsqueeze(0) # Tambah dimensi batch menjadi -> [1, 3, 224, 224]
     
     with col2:
         st.write("### 📊 Hasil Diagnosis Model")
@@ -94,17 +104,17 @@ if uploaded_file is not None:
         
     if run_prediction:
         with st.spinner("Model sedang menganalisis karakteristik visual rontgen..."):
-            # Prediksi Utama
+            # Proses Prediksi Utama
             with torch.no_grad():
                 outputs = model(img_tensor.to(device))
                 probabilities = torch.softmax(outputs, dim=1).cpu().numpy()[0]
                 pred_class = np.argmax(probabilities)
                 
-            # Tampilkan Hasil Utama
+            # Tampilkan Hasil Utama ke Layar
             predicted_label = CLASS_NAMES[pred_class]
             st.success(f"**Diagnosis Utama: {predicted_label}**")
             
-            # Tampilkan Nilai Probabilitas Masing-Masing Kelas
+            # Tampilkan Nilai Probabilitas Masing-Masing Kelas dalam Bentuk Dataframe
             prob_df = pd.DataFrame({
                 'Kategori': [CLASS_NAMES[0], CLASS_NAMES[1], CLASS_NAMES[2]],
                 'Keyakinan Model (%)': [p * 100 for p in probabilities]
@@ -125,7 +135,7 @@ if uploaded_file is not None:
             img_np = img_tensor.squeeze(0).permute(1, 2, 0).numpy()
             img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min() + 1e-8)
             
-            # PERBAIKAN 3: Penanganan Dimensi SHAP Adaptif agar Tidak Memicu Error Axes
+            # Penanganan Dimensi SHAP Adaptif agar tidak memicu ValueError: axes don't match array
             if isinstance(shap_values, list):
                 shap_val_target = shap_values[0]
             else:
@@ -139,10 +149,11 @@ if uploaded_file is not None:
             else:
                 shap_val_trans = shap_val_target
             
-            # Render plot menggunakan Matplotlib
+            # Render plot menggunakan Matplotlib secara lokal di memori server
             fig, ax = plt.subplots(figsize=(6, 6))
             shap.image_plot([shap_val_trans], [img_np], show=False)
             
             # Tampilkan objek gambar matplotlib tadi langsung ke halaman web Streamlit!
             st.pyplot(plt.gcf())
             plt.close()
+            st.toast("Analisis Transparansi SHAP Berhasil Dimuat!", icon="✅")
