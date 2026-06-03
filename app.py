@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import importlib.util
 import torch
 import numpy as np
 import pandas as pd
@@ -10,23 +11,32 @@ import shap
 from PIL import Image
 
 # ============================================================
-# SOLUSI KONFLIK CV2: Daftarkan Jalur Source_Code Secara Absolut
+# PERBAIKAN RADIKAL: Load Modul config.py Menggunakan Path Fisik Absolut
+# (Menghindari Tabrakan dengan cv2/config.py Secara Total)
 # ============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SOURCE_CODE_DIR = os.path.join(BASE_DIR, 'Source_Code')
+CONFIG_PATH = os.path.join(BASE_DIR, 'Source_Code', 'config.py')
 
-# Masukkan ke indeks 0 agar Python memprioritaskan folder proyek Anda
+if not os.path.exists(CONFIG_PATH):
+    st.error(f"Berkas konfigurasi tidak ditemukan di: {CONFIG_PATH}")
+    st.stop()
+
+# Load config.py secara paksa lewat file path
+spec = importlib.util.spec_from_file_location("medical_config", CONFIG_PATH)
+medical_config = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(medical_config)
+
+# Ambil variabel global dari file config proyek Anda yang sudah di-load
+CLASS_NAMES = medical_config.CLASS_NAMES
+IMG_SIZE = medical_config.IMG_SIZE
+
+# Masukkan folder Source_Code ke sys.path untuk fungsi internal lainnya (models, augmentation)
+SOURCE_CODE_DIR = os.path.join(BASE_DIR, 'Source_Code')
 if SOURCE_CODE_DIR not in sys.path:
     sys.path.insert(0, SOURCE_CODE_DIR)
 
-# Gunakan cara import yang aman agar tidak bertabrakan dengan config cv2
-import config as medical_config
 from models import get_model
 from augmentation import get_transforms
-
-# Ambil variabel global dari file config proyek Anda
-CLASS_NAMES = medical_config.CLASS_NAMES
-IMG_SIZE = medical_config.IMG_SIZE
 
 # Config Halaman Utama Streamlit
 st.set_page_config(
