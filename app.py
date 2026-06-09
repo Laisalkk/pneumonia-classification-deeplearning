@@ -367,24 +367,27 @@ with right_col:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Probability Distribution ──
-        st.markdown("""
-        <div class="sechead"><span class="sectl">Probability Distribution</span><div class="secline"></div></div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('<div class="rcard">', unsafe_allow_html=True)
+        # ── Probability Distribution ── (single HTML block — no per-row st.markdown)
+        prob_rows_html = ""
         for idx, name in CLASS_NAMES.items():
-            p     = probs[idx] * 100
-            c     = PROB_COLORS[idx]
-            bold  = "font-weight:600;" if idx == pred_class else ""
-            st.markdown(f"""
-            <div class="prob-row">
-                <div class="prob-label" style="{bold}">{name}</div>
-                <div class="prob-track"><div class="prob-fill" style="width:{p:.1f}%;background:{c};"></div></div>
-                <div class="prob-pct" style="color:{c};{bold}">{p:.2f}%</div>
-            </div>
-            """, unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            p    = probs[idx] * 100
+            c    = PROB_COLORS[idx]
+            bold = "font-weight:600;" if idx == pred_class else "font-weight:400;"
+            prob_rows_html += f"""
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+                <div style="font-family:var(--mono);font-size:12px;color:#94a3b8;width:168px;flex-shrink:0;{bold}">{name}</div>
+                <div style="flex:1;height:6px;background:#111827;border-radius:3px;overflow:hidden;">
+                    <div style="width:{p:.1f}%;height:100%;background:{c};border-radius:3px;"></div>
+                </div>
+                <div style="font-family:var(--mono);font-size:12px;color:{c};width:54px;text-align:right;flex-shrink:0;{bold}">{p:.2f}%</div>
+            </div>"""
+
+        st.markdown(f"""
+        <div class="sechead"><span class="sectl">Probability Distribution</span><div class="secline"></div></div>
+        <div class="rcard" style="padding-bottom:6px;">
+            {prob_rows_html}
+        </div>
+        """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
