@@ -37,11 +37,12 @@ st.markdown("""
     --text-3:    #6ab8b8;
     --mono:      'JetBrains Mono', monospace;
     --sans:      'Inter', sans-serif;
-
-    /* Warna kelas — dipilih agar berbeda jelas di simulasi buta warna */
-    --c-normal:    #38BDF8;   /* biru langit terang */
-    --c-bacterial: #F87171;   /* merah salmon terang */
-    --c-viral:     #C084FC;   /* ungu lavender terang */
+    --cn: #38BDF8;
+    --cb: #F87171;
+    --cv: #C084FC;
+    --warn-bg:  #2a1f00;
+    --warn-bdr: #f59e0b;
+    --warn-txt: #fcd34d;
 }
 
 html, body, [class*="css"] {
@@ -81,7 +82,7 @@ html, body, [class*="css"] {
 /* ── PANEL LABELS ── */
 .plabel { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; color: var(--text-3); text-transform: uppercase; margin-bottom: 8px; }
 
-/* ── CARDS ── */
+/* ── MODEL BADGE ── */
 .mbadge {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 14px; background: var(--bg-card);
@@ -91,6 +92,7 @@ html, body, [class*="css"] {
 .mmeta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 .macc { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--success); }
 
+/* ── ARCH CHIPS ── */
 .stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
 .chip { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; }
 .cv { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--accent); }
@@ -104,32 +106,30 @@ html, body, [class*="css"] {
     margin-bottom: 6px;
 }
 .legend-sym { font-family: var(--mono); font-size: 11px; font-weight: 700; min-width: 36px; }
-.legend-name { font-family: var(--mono); font-size: 11px; color: var(--text-2); flex: 1; }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-/* ── DISCLAIMER BOX ── */
+/* ── DISCLAIMER KUNING ── */
 .disclaimer {
-    background: #0a1f1f;
-    border: 1px solid #1a4040;
-    border-left: 3px solid #6ab8b8;
+    background: var(--warn-bg);
+    border: 1px solid #92400e;
+    border-left: 3px solid var(--warn-bdr);
     border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 11px;
-    color: var(--text-3);
-    line-height: 1.6;
+    padding: 11px 14px;
     margin-top: 10px;
 }
-.disclaimer strong { color: var(--text-2); display: block; margin-bottom: 4px; font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+.disclaimer .disc-title {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--warn-bdr);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+}
+.disclaimer .disc-body {
+    font-size: 11px; color: var(--warn-txt); line-height: 1.65;
+}
+.disclaimer .disc-body em { color: #fbbf24; font-style: normal; font-weight: 600; }
 
-/* ── INFO CHIP (metadata gambar) ── */
-.img-meta {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
-    margin-bottom: 10px;
-}
-.img-meta-item {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 5px; padding: 7px 10px;
-}
+/* ── IMAGE METADATA ── */
+.img-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.img-meta-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 5px; padding: 7px 10px; }
 .img-meta-label { font-size: 9px; color: var(--text-3); letter-spacing: 1px; text-transform: uppercase; font-family: var(--mono); }
 .img-meta-val { font-size: 13px; font-weight: 600; color: var(--text-1); font-family: var(--mono); margin-top: 2px; }
 
@@ -190,16 +190,6 @@ div[data-testid="column"]:last-child { padding-left: 24px !important; }
 
 # ============================================================
 # CONSTANTS
-#
-# Warna kelas baru — dirancang untuk aman buta warna:
-#   Normal    → #38BDF8  biru langit  (hue 199°, terang)
-#   Bacterial → #F87171  merah salmon (hue   0°, terang)
-#   Viral     → #C084FC  ungu lavender(hue 280°, terang)
-#
-#   Ketiga warna berbeda hue > 70° satu sama lain.
-#   Pada simulasi deuteranopia: biru ≠ oranye-kecoklatan ≠ biru-ungu.
-#   Pada grayscale: luminansi berbeda cukup jauh (biru ~46%, merah ~38%, ungu ~42%).
-#   Ditambah simbol [N] [B] [V] sebagai backup non-warna.
 # ============================================================
 CLASS_NAMES   = {0: "Normal", 1: "Bacterial Pneumonia", 2: "Viral Pneumonia"}
 CLASS_COLORS  = {0: "#38BDF8", 1: "#F87171", 2: "#C084FC"}
@@ -289,7 +279,7 @@ with left_col:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Class legend
+    # Class legend — nama kelas berwarna sesuai kelasnya
     st.markdown('<div class="plabel">Class Legend</div>', unsafe_allow_html=True)
     for idx, name in CLASS_NAMES.items():
         c   = CLASS_COLORS[idx]
@@ -297,7 +287,7 @@ with left_col:
         st.markdown(f"""
         <div class="legend-item">
             <span class="legend-sym" style="color:{c};">{sym}</span>
-            <span class="legend-name">{name}</span>
+            <span style="font-family:var(--mono);font-size:11px;color:{c};flex:1;">{name}</span>
             <span class="legend-dot" style="background:{c};"></span>
         </div>
         """, unsafe_allow_html=True)
@@ -317,7 +307,7 @@ with left_col:
         w_px, h_px = pil_thumb.size
         file_kb = uploaded_file.size // 1024
 
-        # Metadata gambar — info tambahan yang berguna
+        # Metadata gambar
         st.markdown(f"""
         <div class="img-meta">
             <div class="img-meta-item">
@@ -347,14 +337,16 @@ with left_col:
     else:
         run_btn = False
 
-    # Disclaimer medis — ditambahkan atas saran
+    # Disclaimer — warna kuning warning
     st.markdown("""
     <div class="disclaimer">
-        <strong>⚠ Disclaimer Medis</strong>
-        Hasil analisis ini bersifat <em>skrining awal berbasis AI</em> dan
-        <strong style="color:#d4f5f5;">bukan diagnosis medis resmi</strong>.
-        Selalu konsultasikan hasil ini kepada dokter atau tenaga medis yang berkompeten
-        sebelum mengambil keputusan klinis apapun.
+        <div class="disc-title">⚠ Disclaimer Medis</div>
+        <div class="disc-body">
+            Hasil analisis ini bersifat skrining awal berbasis AI dan
+            <em>bukan diagnosis medis resmi</em>.
+            Selalu konsultasikan hasil ini kepada dokter atau tenaga medis yang berkompeten
+            sebelum mengambil keputusan klinis apapun.
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -378,7 +370,7 @@ with right_col:
         <div class="empty-state">
             <div class="empty-icon" style="opacity:0.2;">▶</div>
             <div class="empty-title">Citra siap dianalisis</div>
-            <div class="empty-sub" style="color:#004242;">
+            <div class="empty-sub" style="color:#3d7070;">
                 Klik <span style="color:#00b4d8;font-family:monospace;">▶ Analisis Gambar</span> di panel kiri untuk memulai inferensi.
             </div>
         </div>
@@ -435,26 +427,33 @@ with right_col:
         st.markdown("<br>", unsafe_allow_html=True)
 
         # ── Probability Distribution ──
+        # PERBAIKAN: simbol, nama kelas, DAN persentase semua pakai warna kelas masing-masing
         prob_rows_html = ""
         for idx, name in CLASS_NAMES.items():
             p   = probs[idx] * 100
             c   = CLASS_COLORS[idx]
             sym = CLASS_SYMBOLS[idx]
-            w   = "700" if idx == pred_class else "400"
-            # Progress bar height lebih besar untuk kelas prediksi
-            bar_h = "8px" if idx == pred_class else "5px"
+            is_pred = idx == pred_class
+            bar_h   = "8px" if is_pred else "5px"
+            weight  = "700" if is_pred else "400"
+            # semua elemen teks pakai warna kelas: sym, nama, persen
             prob_rows_html += (
                 f'<div style="display:flex;align-items:center;gap:14px;margin-bottom:13px;">'
+                # Simbol + nama — keduanya warna kelas
                 f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;'
-                f'width:230px;flex-shrink:0;font-weight:{w};">'
-                f'<span style="color:{c};margin-right:7px;font-size:10px;">{sym}</span>'
-                f'<span style="color:#7ec8c8;">{name}</span>'
+                f'width:240px;flex-shrink:0;font-weight:{weight};color:{c};">'
+                f'<span style="margin-right:7px;font-size:10px;">{sym}</span>'
+                f'{name}'
                 f'</div>'
-                f'<div style="flex:1;height:{bar_h};background:#004242;border-radius:4px;overflow:hidden;transition:height 0.2s;">'
+                # Progress bar
+                f'<div style="flex:1;height:{bar_h};background:#004242;border-radius:4px;overflow:hidden;">'
                 f'<div style="width:{p:.1f}%;height:100%;background:{c};border-radius:4px;"></div>'
                 f'</div>'
-                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:{c};'
-                f'width:56px;text-align:right;flex-shrink:0;font-weight:{w};">{p:.2f}%</div>'
+                # Persentase — warna kelas
+                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;'
+                f'width:56px;text-align:right;flex-shrink:0;font-weight:{weight};color:{c};">'
+                f'{p:.2f}%'
+                f'</div>'
                 f'</div>'
             )
 
@@ -468,6 +467,48 @@ with right_col:
             f'</div>',
             unsafe_allow_html=True
         )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Ringkasan Klinis (fitur baru) ──
+        # Menampilkan panduan tindak lanjut berdasarkan prediksi
+        CLINICAL_FOLLOWUP = {
+            0: [
+                ("Pemantauan rutin", "Lakukan pemeriksaan rutin sesuai jadwal dokter."),
+                ("Jaga kesehatan paru", "Hindari paparan asap rokok dan polusi udara."),
+                ("Gejala perubahan", "Segera periksakan jika muncul demam, batuk, atau sesak napas."),
+            ],
+            1: [
+                ("Konsultasi segera", "Segera temui dokter untuk konfirmasi dan terapi antibiotik jika diperlukan."),
+                ("Pemeriksaan lanjutan", "Dokter mungkin merekomendasikan kultur sputum atau tes darah."),
+                ("Isolasi & istirahat", "Istirahat cukup dan hindari kontak dengan orang rentan selama masa pemulihan."),
+            ],
+            2: [
+                ("Konsultasi segera", "Segera temui dokter untuk konfirmasi dan penanganan antiviral jika diperlukan."),
+                ("Pemantauan saturasi O₂", "Pantau kadar oksigen darah secara berkala, terutama jika ada sesak napas."),
+                ("Isolasi ketat", "Isolasi mandiri untuk mencegah penularan virus ke orang lain."),
+            ],
+        }
+
+        st.markdown("""
+        <div class="sechead"><span class="sectl">Panduan Tindak Lanjut</span><div class="secline"></div></div>
+        """, unsafe_allow_html=True)
+
+        steps_html = ""
+        for i, (title, desc) in enumerate(CLINICAL_FOLLOWUP[pred_class], 1):
+            steps_html += (
+                f'<div style="display:flex;gap:14px;margin-bottom:12px;'
+                f'padding:12px 14px;background:#002e2e;border:1px solid #005a5a;'
+                f'border-left:3px solid {color};border-radius:6px;">'
+                f'<div style="font-family:var(--mono);font-size:18px;font-weight:700;'
+                f'color:{color};opacity:0.5;min-width:24px;line-height:1.4;">{i}</div>'
+                f'<div>'
+                f'<div style="font-family:var(--mono);font-size:12px;font-weight:600;color:{color};margin-bottom:3px;">{title}</div>'
+                f'<div style="font-size:12px;color:#7ec8c8;line-height:1.6;">{desc}</div>'
+                f'</div>'
+                f'</div>'
+            )
+        st.markdown(steps_html, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -510,16 +551,16 @@ with right_col:
                 unsafe_allow_html=True
             )
 
-        # ── Catatan interpretasi Grad-CAM ── (fitur baru)
+        # ── Interpretasi Grad-CAM ──
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"""
         <div style="background:#0a1f1f;border:1px solid #1a4040;border-radius:8px;padding:14px 18px;">
             <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:#6ab8b8;
                 text-transform:uppercase;margin-bottom:10px;">Interpretasi Grad-CAM</div>
             <div style="font-size:12px;color:#7ec8c8;line-height:1.7;">
-                Area <span style="color:#FF4500;font-weight:600;">merah-oranye</span> pada peta panas menunjukkan
+                Area <span style="color:#FF6347;font-weight:600;">merah-oranye</span> pada peta panas menunjukkan
                 region yang paling berkontribusi terhadap prediksi model.
-                Area <span style="color:#4169E1;font-weight:600;">biru</span> menunjukkan region dengan
+                Area <span style="color:#4fa3e0;font-weight:600;">biru</span> menunjukkan region dengan
                 kontribusi rendah. Perhatikan distribusi area panas di lapang paru
                 untuk memvalidasi kesesuaian dengan gambaran klinis.
             </div>
