@@ -19,7 +19,14 @@ st.set_page_config(
 )
 
 # ============================================================
-# GLOBAL CSS — styling only, zero layout logic here
+# GLOBAL CSS
+# PERUBAHAN WARNA:
+#   - --text-3 dari #3d8080 → #5faaaa  (kontras lebih tinggi, rasio ~4.6:1)
+#   - CLASS_COLORS[2] dari #FFD93D (kuning) → #A78BFA (ungu)
+#     Alasan: cyan + merah + ungu jauh lebih aman untuk buta warna
+#     dibanding cyan + merah + kuning yang terlihat sama pada deuteranopia
+#   - Semua warna kelas kini punya perbedaan hue yang jelas di simulasi
+#     grayscale maupun deuteranopia/protanopia
 # ============================================================
 st.markdown("""
 <style>
@@ -36,7 +43,7 @@ st.markdown("""
     --warn:      #00898B;
     --text-1:    #d4f5f5;
     --text-2:    #7ec8c8;
-    --text-3:    #3d8080;
+    --text-3:    #5faaaa;   /* DIPERBAIKI: dari #3d8080 → lebih terang, kontras ~4.6:1 */
     --mono:      'JetBrains Mono', monospace;
     --sans:      'Inter', sans-serif;
 }
@@ -132,7 +139,6 @@ html, body, [class*="css"] {
 .empty-sub { font-size: 13px; color: var(--text-3); max-width: 300px; line-height: 1.6; }
 
 /* ── STREAMLIT COMPONENT OVERRIDES ── */
-/* File uploader */
 [data-testid="stFileUploadDropzone"] {
     background: #00CED110 !important;
     border: 1.5px dashed #00688B !important;
@@ -146,7 +152,6 @@ html, body, [class*="css"] {
 [data-testid="stFileUploadDropzone"] svg { stroke: var(--accent) !important; }
 .stFileUploader label { color: var(--text-3) !important; font-size: 10px !important; letter-spacing: 1px !important; font-family: var(--mono) !important; }
 
-/* Button */
 .stButton > button {
     width: 100% !important;
     background: var(--accent) !important;
@@ -163,17 +168,14 @@ html, body, [class*="css"] {
 .stButton > button:hover { background: #00e8eb !important; }
 .stButton > button:active { transform: scale(0.98) !important; }
 
-/* Image captions */
 [data-testid="stImage"] p {
     font-family: var(--mono) !important; font-size: 10px !important;
     color: var(--text-3) !important; text-align: center !important;
     letter-spacing: 1px !important; text-transform: uppercase !important; margin-top: 4px !important;
 }
 
-/* Spinner */
 .stSpinner > div { border-top-color: var(--accent) !important; }
 
-/* Vertical divider between columns via border */
 div[data-testid="column"]:first-child {
     border-right: 1px solid var(--border);
     padding-right: 24px !important;
@@ -181,33 +183,78 @@ div[data-testid="column"]:first-child {
 div[data-testid="column"]:last-child {
     padding-left: 24px !important;
 }
+
+/* ── CLASS BADGE (ikon kelas di prob bar) ── */
+/* Ditambahkan untuk membantu buta warna: setiap kelas punya simbol berbeda */
+.class-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-weight: 600;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
 # CONSTANTS
+#
+# PERUBAHAN WARNA KELAS:
+#   Sebelum:  {0: "#00CED1", 1: "#FF6B6B", 2: "#FFD93D"}
+#   Sesudah:  {0: "#00CED1", 1: "#FF6B6B", 2: "#A78BFA"}
+#
+#   Alasan penggantian warna kelas 2 (Viral Pneumonia):
+#   - Kuning (#FFD93D) dan merah (#FF6B6B) pada deuteranopia/protanopia
+#     keduanya muncul sebagai warna kecoklatan/olive yang sangat mirip.
+#   - Ungu (#A78BFA) memiliki hue yang jauh berbeda dari cyan dan merah,
+#     sehingga ketiga kelas dapat dibedakan bahkan dalam mode grayscale
+#     maupun simulasi buta warna merah-hijau.
+#
+# DITAMBAHKAN: CLASS_SYMBOLS untuk perbedaan non-warna
+#   Setiap kelas kini memiliki simbol unik sebagai backup visual
+#   selain perbedaan warna — penting untuk aksesibilitas buta warna.
 # ============================================================
-CLASS_NAMES = {0: "Normal", 1: "Bacterial Pneumonia", 2: "Viral Pneumonia"}
-CLASS_COLORS = {0: "#00CED1", 1: "#FF6B6B", 2: "#FFD93D"}
-CLASS_ICONS  = {0: "✓", 1: "⚠", 2: "⚠"}
-CLASS_DESC   = {
+CLASS_NAMES   = {0: "Normal", 1: "Bacterial Pneumonia", 2: "Viral Pneumonia"}
+
+CLASS_COLORS  = {
+    0: "#00CED1",   # Cyan   — Normal (tidak berubah)
+    1: "#FF6B6B",   # Merah  — Bacterial (tidak berubah)
+    2: "#A78BFA",   # Ungu   — Viral (DIPERBAIKI dari #FFD93D kuning)
+}
+
+CLASS_ICONS   = {
+    0: "✓",   # centang = aman/normal
+    1: "⚠",   # segitiga = perhatian
+    2: "⚠",   # segitiga = perhatian
+}
+
+# Simbol tambahan — membedakan kelas secara non-warna (penting untuk buta warna)
+CLASS_SYMBOLS = {
+    0: "[ N ]",   # Normal
+    1: "[ B ]",   # Bacterial
+    2: "[ V ]",   # Viral
+}
+
+CLASS_DESC    = {
     0: "Tidak ditemukan indikasi infeksi. Struktur paru tampak dalam batas normal.",
     1: "Terdeteksi pola konsolidasi konsisten dengan infeksi bakterial. Segera konsultasikan ke dokter.",
     2: "Terdeteksi pola ground-glass opacity yang mengarah pada infeksi viral. Diperlukan pemeriksaan klinis lanjutan.",
 }
-PROB_COLORS  = {0: "#00CED1", 1: "#FF6B6B", 2: "#FFD93D"}
+
+PROB_COLORS   = CLASS_COLORS   # alias, tetap satu sumber kebenaran
 
 # ============================================================
 # MODEL LOADER
 # ============================================================
 @st.cache_resource
 def load_model_from_hf():
-    repo_id = "laisalkk/pneumonia-classification-deeplearning"
+    repo_id  = "laisalkk/pneumonia-classification-deeplearning"
     filename = "E5_EfficientNetB0_best.pth"
     with st.spinner("Mengunduh model dari Hugging Face..."):
-        path = hf_hub_download(repo_id=repo_id, filename=filename)
+        path  = hf_hub_download(repo_id=repo_id, filename=filename)
         model = get_inference_model("EfficientNetB0", num_classes=3)
-        ckpt = torch.load(path, map_location="cpu")
+        ckpt  = torch.load(path, map_location="cpu")
         if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
             model.load_state_dict(ckpt["model_state_dict"])
         elif isinstance(ckpt, dict) and "state_dict" in ckpt:
@@ -240,16 +287,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# MAIN LAYOUT — Streamlit columns (LEFT: input | RIGHT: output)
+# MAIN LAYOUT
 # ============================================================
 left_col, right_col = st.columns([1, 2.4], gap="medium")
 
 # ══════════════════════════════════════════════
-# LEFT COLUMN — All native Streamlit widgets
+# LEFT COLUMN
 # ══════════════════════════════════════════════
 with left_col:
 
-    # Model badge
     st.markdown('<div class="plabel">Active Model</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="mbadge">
@@ -263,7 +309,6 @@ with left_col:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Architecture stats
     st.markdown('<div class="plabel">Architecture Info</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="stat-row">
@@ -275,7 +320,28 @@ with left_col:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # File uploader — native widget
+    # Legenda warna kelas — membantu pengguna buta warna memahami sistem warna
+    st.markdown('<div class="plabel">Class Legend</div>', unsafe_allow_html=True)
+    legend_html = ""
+    for idx, name in CLASS_NAMES.items():
+        c   = CLASS_COLORS[idx]
+        sym = CLASS_SYMBOLS[idx]
+        legend_html += (
+            f'<div style="display:flex;align-items:center;gap:10px;'
+            f'margin-bottom:7px;padding:7px 10px;background:var(--bg-card);'
+            f'border:1px solid var(--border);border-radius:5px;">'
+            f'<span style="font-family:var(--mono);font-size:11px;font-weight:700;'
+            f'color:{c};min-width:40px;">{sym}</span>'
+            f'<span style="font-family:var(--mono);font-size:11px;color:#7ec8c8;">'
+            f'{name}</span>'
+            f'<span style="margin-left:auto;width:12px;height:12px;border-radius:50%;'
+            f'background:{c};display:inline-block;flex-shrink:0;"></span>'
+            f'</div>'
+        )
+    st.markdown(legend_html, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
     st.markdown('<div class="plabel">Input X-Ray</div>', unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
         "Upload chest X-Ray image",
@@ -283,7 +349,6 @@ with left_col:
         label_visibility="collapsed"
     )
 
-    # Preview thumbnail
     if uploaded_file:
         pil_thumb = Image.open(uploaded_file).convert("RGB")
         st.image(pil_thumb, use_container_width=True, caption=uploaded_file.name[:32])
@@ -296,7 +361,7 @@ with left_col:
 
 
 # ══════════════════════════════════════════════
-# RIGHT COLUMN — Results
+# RIGHT COLUMN
 # ══════════════════════════════════════════════
 with right_col:
 
@@ -324,7 +389,7 @@ with right_col:
 
     # ── Run inference ──
     else:
-        pil_image  = Image.open(uploaded_file).convert("RGB")
+        pil_image   = Image.open(uploaded_file).convert("RGB")
         original_np = np.array(pil_image)
 
         eval_transform = transforms.Compose([
@@ -341,8 +406,9 @@ with right_col:
             target_layer = model.features[-1]
             gradcam_img  = apply_gradcam(model, target_layer, input_tensor, pred_class, original_np)
 
-        color = CLASS_COLORS[pred_class]
-        conf  = probs[pred_class] * 100
+        color  = CLASS_COLORS[pred_class]
+        conf   = probs[pred_class] * 100
+        symbol = CLASS_SYMBOLS[pred_class]
 
         # ── Prediction Result ──
         st.markdown("""
@@ -353,7 +419,10 @@ with right_col:
         <div class="rcard">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
                 <div style="flex:1;">
-                    <div class="rdiag" style="color:{color};">{CLASS_ICONS[pred_class]} {CLASS_NAMES[pred_class]}</div>
+                    <div class="rdiag" style="color:{color};">
+                        {CLASS_ICONS[pred_class]} {CLASS_NAMES[pred_class]}
+                        <span style="font-size:14px;opacity:0.6;margin-left:8px;">{symbol}</span>
+                    </div>
                     <div class="rconf">CONFIDENCE: {conf:.2f}%</div>
                     <div class="rdesc" style="border-color:{color};background:{color}12;color:#d4f5f5;">
                         {CLASS_DESC[pred_class]}
@@ -361,7 +430,7 @@ with right_col:
                 </div>
                 <div style="text-align:right;flex-shrink:0;">
                     <div style="font-family:var(--mono);font-size:40px;font-weight:700;color:{color};line-height:1;">{conf:.1f}%</div>
-                    <div style="font-size:10px;color:var(--text-3);letter-spacing:1px;margin-top:4px;">CONFIDENCE SCORE</div>
+                    <div style="font-size:10px;color:#5faaaa;letter-spacing:1px;margin-top:4px;">CONFIDENCE SCORE</div>
                 </div>
             </div>
         </div>
@@ -369,19 +438,28 @@ with right_col:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Probability Distribution ── (single HTML block — no per-row st.markdown)
+        # ── Probability Distribution ──
+        # DITAMBAHKAN: simbol CLASS_SYMBOLS pada setiap baris
+        # sehingga setiap kelas dapat dibedakan tanpa mengandalkan warna saja
         prob_rows_html = ""
         for idx, name in CLASS_NAMES.items():
-            p    = probs[idx] * 100
-            c    = PROB_COLORS[idx]
-            w    = "600" if idx == pred_class else "400"
+            p   = probs[idx] * 100
+            c   = PROB_COLORS[idx]
+            sym = CLASS_SYMBOLS[idx]
+            w   = "600" if idx == pred_class else "400"
             prob_rows_html += (
                 f'<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">'
+                # Label kelas dengan simbol — diferensiasi non-warna
                 f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#7ec8c8;'
-                f'width:168px;flex-shrink:0;font-weight:{w};">{name}</div>'
+                f'width:220px;flex-shrink:0;font-weight:{w};">'
+                f'<span style="color:{c};margin-right:6px;font-size:11px;">{sym}</span>'
+                f'{name}'
+                f'</div>'
+                # Progress bar
                 f'<div style="flex:1;height:6px;background:#004242;border-radius:3px;overflow:hidden;">'
                 f'<div style="width:{p:.1f}%;height:100%;background:{c};border-radius:3px;"></div>'
                 f'</div>'
+                # Persentase
                 f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:{c};'
                 f'width:54px;text-align:right;flex-shrink:0;font-weight:{w};">{p:.2f}%</div>'
                 f'</div>'
@@ -389,7 +467,7 @@ with right_col:
 
         st.markdown(
             f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;letter-spacing:2px;'
-            f'color:#3d8080;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+            f'color:#5faaaa;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
             f'PROBABILITY DISTRIBUTION'
             f'<div style="flex:1;height:1px;background:#005a5a;"></div></div>'
             f'<div style="background:#002e2e;border:1px solid #005a5a;border-radius:10px;padding:20px 22px 8px 22px;">'
@@ -435,6 +513,6 @@ with right_col:
             st.markdown(
                 f'<p style="font-family:\'JetBrains Mono\',monospace;font-size:11px;'
                 f'color:{color};font-weight:600;text-align:center;margin-top:4px;">'
-                f'Region of interest → {CLASS_NAMES[pred_class]}</p>',
+                f'Region of interest → {symbol} {CLASS_NAMES[pred_class]}</p>',
                 unsafe_allow_html=True
             )
