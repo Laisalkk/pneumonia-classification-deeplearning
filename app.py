@@ -372,22 +372,29 @@ with right_col:
         for idx, name in CLASS_NAMES.items():
             p    = probs[idx] * 100
             c    = PROB_COLORS[idx]
-            bold = "font-weight:600;" if idx == pred_class else "font-weight:400;"
-            prob_rows_html += f"""
-            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
-                <div style="font-family:var(--mono);font-size:12px;color:#94a3b8;width:168px;flex-shrink:0;{bold}">{name}</div>
-                <div style="flex:1;height:6px;background:#111827;border-radius:3px;overflow:hidden;">
-                    <div style="width:{p:.1f}%;height:100%;background:{c};border-radius:3px;"></div>
-                </div>
-                <div style="font-family:var(--mono);font-size:12px;color:{c};width:54px;text-align:right;flex-shrink:0;{bold}">{p:.2f}%</div>
-            </div>"""
+            w    = "600" if idx == pred_class else "400"
+            prob_rows_html += (
+                f'<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">'
+                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#94a3b8;'
+                f'width:168px;flex-shrink:0;font-weight:{w};">{name}</div>'
+                f'<div style="flex:1;height:6px;background:#111827;border-radius:3px;overflow:hidden;">'
+                f'<div style="width:{p:.1f}%;height:100%;background:{c};border-radius:3px;"></div>'
+                f'</div>'
+                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:{c};'
+                f'width:54px;text-align:right;flex-shrink:0;font-weight:{w};">{p:.2f}%</div>'
+                f'</div>'
+            )
 
-        st.markdown(f"""
-        <div class="sechead"><span class="sectl">Probability Distribution</span><div class="secline"></div></div>
-        <div class="rcard" style="padding-bottom:6px;">
-            {prob_rows_html}
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;letter-spacing:2px;'
+            f'color:#475569;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+            f'PROBABILITY DISTRIBUTION'
+            f'<div style="flex:1;height:1px;background:#1e2d45;"></div></div>'
+            f'<div style="background:#0d1421;border:1px solid #1e2d45;border-radius:10px;padding:20px 22px 8px 22px;">'
+            f'{prob_rows_html}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
         st.markdown("<br>", unsafe_allow_html=True)
 
