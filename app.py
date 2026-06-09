@@ -26,7 +26,7 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
 
 :root {
-    --bg-deep:   #002222;
+    --bg-deep:   #001e1e;
     --bg-panel:  #002e2e;
     --bg-card:   #004242;
     --border:    #005a5a;
