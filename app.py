@@ -188,14 +188,14 @@ div[data-testid="column"]:last-child {
 # CONSTANTS
 # ============================================================
 CLASS_NAMES = {0: "Normal", 1: "Bacterial Pneumonia", 2: "Viral Pneumonia"}
-CLASS_COLORS = {0: "#00898B", 1: "#00CED1", 2: "#00688B"}
+CLASS_COLORS = {0: "#3d8080", 1: "#00CED1", 2: "#7fffd4"}
 CLASS_ICONS  = {0: "✓", 1: "⚠", 2: "⚠"}
 CLASS_DESC   = {
     0: "Tidak ditemukan indikasi infeksi. Struktur paru tampak dalam batas normal.",
     1: "Terdeteksi pola konsolidasi konsisten dengan infeksi bakterial. Segera konsultasikan ke dokter.",
     2: "Terdeteksi pola ground-glass opacity yang mengarah pada infeksi viral. Diperlukan pemeriksaan klinis lanjutan.",
 }
-PROB_COLORS  = {0: "#00898B", 1: "#00CED1", 2: "#00688B"}
+PROB_COLORS  = {0: "#3d8080", 1: "#00CED1", 2: "#7fffd4"}
 
 # ============================================================
 # MODEL LOADER
@@ -438,3 +438,4 @@ with right_col:
                 f'Region of interest → {CLASS_NAMES[pred_class]}</p>',
                 unsafe_allow_html=True
             )
+            
