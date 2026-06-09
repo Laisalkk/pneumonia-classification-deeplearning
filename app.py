@@ -35,7 +35,7 @@ st.markdown("""
 :root {
     --bg-deep:   #010F1A;
     --bg-panel:  #002e2e;
-    --bg-card:   #004242;
+    --bg-card:   #002727;
     --border:    #005a5a;
     --accent:    #00CED1;
     --success:   #00898B;
