@@ -120,6 +120,15 @@ html, body, [class*="css"] {
 }
 .itag { font-size: 9px; padding: 2px 8px; border-radius: 3px; }
 
+/* ── EMPTY STATE ── */
+.empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 60vh; text-align: center; gap: 14px;
+}
+.empty-icon { font-size: 60px; opacity: 0.12; }
+.empty-title { font-family: var(--mono); font-size: 16px; color: var(--text-3); letter-spacing: -0.3px; }
+.empty-sub { font-size: 13px; color: var(--text-3); max-width: 300px; line-height: 1.6; }
+
 /* ── STREAMLIT COMPONENT OVERRIDES ── */
 /* File uploader */
 [data-testid="stFileUploadDropzone"] {
@@ -152,11 +161,11 @@ html, body, [class*="css"] {
 .stButton > button:hover { background: #00d4f5 !important; }
 .stButton > button:active { transform: scale(0.98) !important; }
 
-/* REVISI DI SINI: Menghapus rule warna statis agar bisa dimanipulasi menggunakan HTML secara dinamis */
+/* Image captions */
 [data-testid="stImage"] p {
     font-family: var(--mono) !important; font-size: 10px !important;
-    text-align: center !important;
-    letter-spacing: 1px !important; text-transform: uppercase !important; margin-top: 6px !important;
+    color: var(--text-3) !important; text-align: center !important;
+    letter-spacing: 1px !important; text-transform: uppercase !important; margin-top: 4px !important;
 }
 
 /* Spinner */
@@ -237,6 +246,7 @@ left_col, right_col = st.columns([1, 2.4], gap="medium")
 # LEFT COLUMN — All native Streamlit widgets
 # ══════════════════════════════════════════════
 with left_col:
+
     # Model badge
     st.markdown('<div class="plabel">Active Model</div>', unsafe_allow_html=True)
     st.markdown("""
@@ -282,10 +292,12 @@ with left_col:
     else:
         run_btn = False
 
+
 # ══════════════════════════════════════════════
 # RIGHT COLUMN — Results
 # ══════════════════════════════════════════════
 with right_col:
+
     # ── Empty state ──
     if not uploaded_file:
         st.markdown("""
@@ -355,7 +367,7 @@ with right_col:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Probability Distribution ──
+        # ── Probability Distribution ── (single HTML block — no per-row st.markdown)
         prob_rows_html = ""
         for idx, name in CLASS_NAMES.items():
             p    = probs[idx] * 100
@@ -401,9 +413,12 @@ with right_col:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            # Teks caption gambar asli diubah menjadi abu-abu terang (#94a3b8)
-            st.image(original_np, use_container_width=True, 
-                     caption=f'<span style="color:#94a3b8;">Base Image Input</span>')
+            st.image(original_np, use_container_width=True)
+            st.markdown(
+                '<p style="font-family:\'JetBrains Mono\',monospace;font-size:11px;'
+                'color:#94a3b8;text-align:center;margin-top:4px;">Base Image Input</p>',
+                unsafe_allow_html=True
+            )
 
         with ic2:
             st.markdown(f"""
@@ -414,10 +429,10 @@ with right_col:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            
-            # REVISI UTAMA: Menggunakan tag HTML <span> bermotif warna dinamis (color) mengikuti hasil klasifikasi model
-            st.image(
-                gradcam_img, 
-                use_container_width=True,
-                caption=f'<span style="color:{color}; font-weight:600;">Region of interest → {CLASS_NAMES[pred_class]}</span>'
+            st.image(gradcam_img, use_container_width=True)
+            st.markdown(
+                f'<p style="font-family:\'JetBrains Mono\',monospace;font-size:11px;'
+                f'color:{color};font-weight:600;text-align:center;margin-top:4px;">'
+                f'Region of interest → {CLASS_NAMES[pred_class]}</p>',
+                unsafe_allow_html=True
             )
