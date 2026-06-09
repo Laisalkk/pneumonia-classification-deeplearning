@@ -1,155 +1,127 @@
-# -*- coding: utf-8 -*-
-import os
-import sys
+import streamlit as st
 import torch
 import numpy as np
-import pandas as pd
-import streamlit as st
-import matplotlib.pyplot as plt
-import shap
 from PIL import Image
+from torchvision import transforms
+from huggingface_hub import hf_hub_download
 
-# Hubungkan folder Source_Code ke sistem path Python
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SOURCE_CODE_DIR = os.path.join(BASE_DIR, 'Source_Code')
-if SOURCE_CODE_DIR not in sys.path:
-    sys.path.insert(0, SOURCE_CODE_DIR)
-
-# Import modul dengan aman lewat proxy config yang baru kita buat
-import config as medical_config
-from models import get_model
-from augmentation import get_transforms
-
-# Ambil variabel global dari file config
-CLASS_NAMES = medical_config.CLASS_NAMES
-IMG_SIZE = medical_config.IMG_SIZE
-
-# Config Halaman Utama Streamlit
-st.set_page_config(
-    page_title="Pneumonia Detection & XAI Dashboard",
-    page_icon="🩺",
-    layout="centered"
-)
+# Import modul buatan sendiri
+from models_inference import get_inference_model
+from gradcam_inference import apply_gradcam
 
 # ============================================================
-# CACHED FUNCTIONS (Akselerasi Pemuatan Model & SHAP)
+# CONFIGURASI APP
 # ============================================================
+st.set_page_config(page_title="Pneumonia Detection & Grad-CAM App", layout="wide")
 
+CLASS_NAMES = {
+    0: "No Disease (Normal)",
+    1: "Bacterial Pneumonia",
+    2: "Viral Pneumonia"
+}
+
+# Fungsi cache agar model tidak di-download ulang setiap kali user klik tombol
 @st.cache_resource
-def load_trained_model():
-    """Memuat bobot model terbaik E5_EfficientNetB0_best.pth secara aman"""
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def load_model_from_hf():
+    repo_id = "laisalkk/pneumonia-classification-deeplearning"
+    filename = "E5_EfficientNetB0_best.pth"
     
-    # Ambil file model terbaik yang ada di folder checkpoints
-    checkpoint_path = os.path.join(BASE_DIR, "Results", "checkpoints", "E5_EfficientNetB0_best.pth")
-    
-    # Bangun struktur arsitektur dasar (3 Kelas: Normal, Bacterial, Viral)
-    model = get_model(model_name="EfficientNetB0", num_classes=3)
-    
-    if os.path.exists(checkpoint_path):
-        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    else:
-        st.error(f"Berkas model '{checkpoint_path}' tidak ditemukan di GitHub Anda! Pastikan folder Results/checkpoints/ sudah benar.")
-        st.stop()
+    with st.spinner("Mengunduh model terbaik dari Hugging Face... Harap tunggu..."):
+        # Download file pth dari HF ke cache server Streamlit
+        model_file_path = hf_hub_download(repo_id=repo_id, filename=filename)
         
-    model = model.to(device)
-    model.eval()
-    return model, device
+        # Bangun arsitektur EfficientNetB0 (3 kelas)
+        model = get_inference_model("EfficientNetB0", num_classes=3)
+        
+        # Load weights checkpoint
+        checkpoint = torch.load(model_file_path, map_location=torch.device('cpu'))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.eval()
+        
+    return model
 
-@st.cache_resource
-def create_shap_explainer(_model, device):
-    """Inisialisasi basis data referensi konstan untuk kalkulasi SHAP di web"""
-    background = torch.zeros(3, 3, IMG_SIZE, IMG_SIZE).to(device)
-    explainer = shap.GradientExplainer(_model, background)
-    return explainer
-
-# Muat model dan pengonfirmasi akuntabilitas secara global saat web pertama kali dibuka
-model, device = load_trained_model()
-explainer = create_shap_explainer(model, device)
+# Load model
+try:
+    model = load_model_from_hf()
+except Exception as e:
+    st.error(f"Gagal memuat model dari Hugging Face: {e}")
+    st.stop()
 
 # ============================================================
-# USER INTERFACE (Tampilan Web Dashboard)
+# HEADER GUI
 # ============================================================
+st.title("🫁 Pneumonia Deep Learning Classification & XAI (Grad-CAM)")
+st.write("Aplikasi interpretasi medis otomatis untuk mendeteksi tipe Pneumonia menggunakan arsitektur **EfficientNetB0**.")
+st.markdown("---")
 
-st.title("🩺 Pneumonia Detection App with Explainable AI")
-st.markdown("""
-Aplikasi web ini mendeteksi penyakit **Pneumonia (Bakteri/Virus)** menggunakan model **EfficientNetB0 (Akurasi: 86.73%)** dan dilengkapi transparansi medis menggunakan **SHAP (Peta Kontribusi Piksel)**.
-""")
-
-st.write("---")
-
-# Widget Pengunggah Berkas Gambar rontgen
-uploaded_file = st.file_uploader("Unggah Citra Rontgen Paru-Paru (X-Ray Dada)...", type=["jpg", "jpeg", "png"])
+# ============================================================
+# AREA UPLOAD GAMBAR
+# ============================================================
+uploaded_file = st.file_uploader("Silahkan pilih atau drag-and-drop gambar Rontgen Dada (X-Ray)...", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
-    # 1. Konversi ke RGB agar sesuai dengan dimensi channel input [3, 224, 224] model Anda
-    image = Image.open(uploaded_file).convert("RGB")
+    # 1. Buka Gambar Menggunakan PIL
+    pil_image = Image.open(uploaded_file).convert("RGB")
+    original_np = np.array(pil_image)
     
+    # 2. Transformasi Gambar untuk Input Model (Sesuai Pipeline Validation)
+    eval_transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
+    ])
+    
+    input_tensor = eval_transform(pil_image).unsqueeze(0) # Tambah dimensi batch [1, 3, 224, 224]
+    
+    # ============================================================
+    # PROSES PREDIKSI & GRAD-CAM
+    # ============================================================
+    with st.spinner("Sedang menganalisis struktur citra medis..."):
+        # Jalankan inferensi forward pass
+        outputs = model(input_tensor)
+        probabilities = torch.softmax(outputs, dim=1).squeeze(0).detach().numpy()
+        pred_class = np.argmax(probabilities)
+        
+        # Target layer untuk EfficientNetB0 Grad-CAM biasanya adalah bagian akhir dari features block
+        target_layer = model.features[-1]
+        
+        # Generate gambar hasil visualisasi Grad-CAM
+        gradcam_img = apply_gradcam(model, target_layer, input_tensor, pred_class, original_np)
+
+    # ============================================================
+    # TAMPILAN OUTPUT UTAMA (BERSANDING)
+    # ============================================================
+    st.subheader("📸 Visualisasi Perbandingan Citra Medis")
     col1, col2 = st.columns(2)
+    
     with col1:
-        st.image(image, caption="Gambar Rontgen Unggahan", use_container_width=True)
-    
-    # 2. Preprocessing Gambar Mengikuti Transformasi Proyek Anda
-    _, _, test_transform = get_transforms()
-    img_tensor = test_transform(image) 
-    img_tensor = img_tensor.unsqueeze(0) # Tambah dimensi batch menjadi -> [1, 3, 224, 224]
-    
+        st.image(original_np, caption="Gambar Rontgen Asli (User Upload)", use_container_width=True)
+        
     with col2:
-        st.write("### 📊 Hasil Diagnosis Model")
-        run_prediction = st.button("Jalankan Diagnosis Otomatis", type="primary")
+        st.image(gradcam_img, caption=f"Peta Aktivasi Grad-CAM (Prediksi: {CLASS_NAMES[pred_class]})", use_container_width=True)
         
-    if run_prediction:
-        with st.spinner("Model sedang menganalisis karakteristik visual rontgen..."):
-            # Proses Prediksi Utama
-            with torch.no_grad():
-                outputs = model(img_tensor.to(device))
-                probabilities = torch.softmax(outputs, dim=1).cpu().numpy()[0]
-                pred_class = np.argmax(probabilities)
-                
-            # Tampilkan Hasil Utama ke Layar
-            predicted_label = CLASS_NAMES[pred_class]
-            st.success(f"**Diagnosis Utama: {predicted_label}**")
-            
-            # Tampilkan Nilai Probabilitas Masing-Masing Kelas dalam Bentuk Dataframe
-            prob_df = pd.DataFrame({
-                'Kategori': [CLASS_NAMES[0], CLASS_NAMES[1], CLASS_NAMES[2]],
-                'Keyakinan Model (%)': [p * 100 for p in probabilities]
-            })
-            st.dataframe(prob_df.set_index('Kategori'))
-            
-        st.write("---")
+    st.markdown("---")
+    
+    # ============================================================
+    # DETAIL PRESENTASE AKURASI / PROBABILITAS (BAGIAN BAWAH)
+    # ============================================================
+    st.subheader("📊 Hasil Analisis Probabilitas Model")
+    
+    # Berikan highlight text untuk kelas dengan probabilitas tertinggi
+    st.success(f"**Hasil Diagnosis Utama: {CLASS_NAMES[pred_class]} ({probabilities[pred_class]*100:.2f}%)**")
+    
+    # Tampilkan persentase masing-masing kelas menggunakan progress bar
+    for class_idx, class_name in CLASS_NAMES.items():
+        prob_value = probabilities[class_idx]
+        prob_percentage = prob_value * 100
         
-        # 3. FITUR EXPLAINABLE AI (SHAP VISUALIZATION)
-        st.write("### 👁️ Analisis Akuntabilitas Piksel (Explainable AI - SHAP)")
-        st.info("💡 **Cara Membaca Visualisasi:** Piksel berwarna **merah/merah muda** menunjukkan area yang memperkuat keyakinan model dalam mengambil keputusan diagnosis tersebut.")
-        
-        with st.spinner("Sedang memproses perhitungan SHAP Values pada piksel gambar..."):
-            # Jalankan kalkulasi SHAP Gradient
-            shap_values, indexes = explainer.shap_values(img_tensor.to(device), ranked_outputs=1)
-            
-            # Siapkan gambar numpy untuk matplotlib (Denormalisasi ringan)
-            img_np = img_tensor.squeeze(0).permute(1, 2, 0).numpy()
-            img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min() + 1e-8)
-            
-            # Penanganan Dimensi SHAP Adaptif agar tidak memicu ValueError: axes don't match array
-            if isinstance(shap_values, list):
-                shap_val_target = shap_values[0]
-            else:
-                shap_val_target = shap_values
+        # Tampilkan teks label dan persentasenya
+        st.write(f"**{class_name}** : {prob_percentage:.2f}%")
+        # Tampilkan progress bar visualnya
+        st.progress(float(prob_value))
 
-            if len(shap_val_target.shape) == 4:
-                shap_val_target = shap_val_target[0]
-
-            if shap_val_target.shape[0] in [1, 3]:
-                shap_val_trans = np.transpose(shap_val_target, (1, 2, 0))
-            else:
-                shap_val_trans = shap_val_target
-            
-            # Render plot menggunakan Matplotlib secara lokal di memori server
-            fig, ax = plt.subplots(figsize=(6, 6))
-            shap.image_plot([shap_val_trans], [img_np], show=False)
-            
-            # Tampilkan objek gambar matplotlib tadi langsung ke halaman web Streamlit!
-            st.pyplot(plt.gcf())
-            plt.close()
-            st.toast("Analisis Transparansi SHAP Berhasil Dimuat!", icon="✅")
+else:
+    st.info("💡 Petunjuk: Silahkan upload gambar file Rontgen dada di atas untuk memulai analisis otomatis.")
