@@ -470,48 +470,6 @@ with right_col:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Ringkasan Klinis (fitur baru) ──
-        # Menampilkan panduan tindak lanjut berdasarkan prediksi
-        CLINICAL_FOLLOWUP = {
-            0: [
-                ("Pemantauan rutin", "Lakukan pemeriksaan rutin sesuai jadwal dokter."),
-                ("Jaga kesehatan paru", "Hindari paparan asap rokok dan polusi udara."),
-                ("Gejala perubahan", "Segera periksakan jika muncul demam, batuk, atau sesak napas."),
-            ],
-            1: [
-                ("Konsultasi segera", "Segera temui dokter untuk konfirmasi dan terapi antibiotik jika diperlukan."),
-                ("Pemeriksaan lanjutan", "Dokter mungkin merekomendasikan kultur sputum atau tes darah."),
-                ("Isolasi & istirahat", "Istirahat cukup dan hindari kontak dengan orang rentan selama masa pemulihan."),
-            ],
-            2: [
-                ("Konsultasi segera", "Segera temui dokter untuk konfirmasi dan penanganan antiviral jika diperlukan."),
-                ("Pemantauan saturasi O₂", "Pantau kadar oksigen darah secara berkala, terutama jika ada sesak napas."),
-                ("Isolasi ketat", "Isolasi mandiri untuk mencegah penularan virus ke orang lain."),
-            ],
-        }
-
-        st.markdown("""
-        <div class="sechead"><span class="sectl">Panduan Tindak Lanjut</span><div class="secline"></div></div>
-        """, unsafe_allow_html=True)
-
-        steps_html = ""
-        for i, (title, desc) in enumerate(CLINICAL_FOLLOWUP[pred_class], 1):
-            steps_html += (
-                f'<div style="display:flex;gap:14px;margin-bottom:12px;'
-                f'padding:12px 14px;background:#002e2e;border:1px solid #005a5a;'
-                f'border-left:3px solid {color};border-radius:6px;">'
-                f'<div style="font-family:var(--mono);font-size:18px;font-weight:700;'
-                f'color:{color};opacity:0.5;min-width:24px;line-height:1.4;">{i}</div>'
-                f'<div>'
-                f'<div style="font-family:var(--mono);font-size:12px;font-weight:600;color:{color};margin-bottom:3px;">{title}</div>'
-                f'<div style="font-size:12px;color:#7ec8c8;line-height:1.6;">{desc}</div>'
-                f'</div>'
-                f'</div>'
-            )
-        st.markdown(steps_html, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
         # ── Image Visualization ──
         st.markdown("""
         <div class="sechead"><span class="sectl">Image Visualization</span><div class="secline"></div></div>
