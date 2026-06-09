@@ -33,9 +33,18 @@ def load_model_from_hf():
         # Bangun arsitektur EfficientNetB0 (3 kelas)
         model = get_inference_model("EfficientNetB0", num_classes=3)
         
-        # Load weights checkpoint
+        # Load weights checkpoint secara aman
         checkpoint = torch.load(model_file_path, map_location=torch.device('cpu'))
-        model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # REVISI: Cek struktur penyimpanan checkpoint secara adaptif
+        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['model_state_dict'])
+        elif isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['state_dict'])
+        else:
+            # Jika file pth langsung berisi matriks bobot murni (tanpa dictionary wrapper)
+            model.load_state_dict(checkpoint)
+            
         model.eval()
         
     return model
