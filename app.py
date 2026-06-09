@@ -48,7 +48,9 @@ html, body, [class*="css"] {
 }
 .stApp { background: var(--bg-deep) !important; }
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 1rem 1.5rem 2rem !important; max-width: 100% !important; }
+.block-container { padding: 0 1.5rem 2rem !important; max-width: 100% !important; }
+.stMainBlockContainer { padding-top: 0 !important; }
+[data-testid="stAppViewContainer"] > section > div { padding-top: 0 !important; }
 
 /* ── TOPBAR ── */
 .topbar {
