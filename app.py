@@ -26,17 +26,17 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
 
 :root {
-    --bg-deep:   #090d13;
-    --bg-panel:  #0d1421;
-    --bg-card:   #111827;
-    --border:    #1e2d45;
-    --accent:    #00b4d8;
-    --success:   #06d6a0;
-    --danger:    #ff4d6d;
-    --warn:      #ffd60a;
-    --text-1:    #e2e8f0;
-    --text-2:    #94a3b8;
-    --text-3:    #475569;
+    --bg-deep:   #002222;
+    --bg-panel:  #002e2e;
+    --bg-card:   #004242;
+    --border:    #005a5a;
+    --accent:    #00CED1;
+    --success:   #00898B;
+    --danger:    #00CED1;
+    --warn:      #00898B;
+    --text-1:    #d4f5f5;
+    --text-2:    #7ec8c8;
+    --text-3:    #3d8080;
     --mono:      'JetBrains Mono', monospace;
     --sans:      'Inter', sans-serif;
 }
@@ -65,7 +65,7 @@ html, body, [class*="css"] {
 .status-pill {
     display: flex; align-items: center; gap: 8px;
     font-family: var(--mono); font-size: 11px; color: var(--success);
-    padding: 6px 14px; border: 1px solid #06d6a030; border-radius: 4px; background: #06d6a008;
+    padding: 6px 14px; border: 1px solid #00898B30; border-radius: 4px; background: #00898B08;
 }
 .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
@@ -134,12 +134,12 @@ html, body, [class*="css"] {
 /* ── STREAMLIT COMPONENT OVERRIDES ── */
 /* File uploader */
 [data-testid="stFileUploadDropzone"] {
-    background: #00b4d810 !important;
-    border: 1.5px dashed #1e4d7b !important;
+    background: #00CED110 !important;
+    border: 1.5px dashed #00688B !important;
     border-radius: 8px !important;
 }
 [data-testid="stFileUploadDropzone"]:hover {
-    background: #00b4d822 !important;
+    background: #00CED122 !important;
     border-color: var(--accent) !important;
 }
 [data-testid="stFileUploadDropzone"] p { color: var(--text-2) !important; font-size: 12px !important; }
@@ -150,7 +150,7 @@ html, body, [class*="css"] {
 .stButton > button {
     width: 100% !important;
     background: var(--accent) !important;
-    color: #000 !important;
+    color: #002222 !important;
     border: none !important;
     border-radius: 6px !important;
     font-family: var(--mono) !important;
@@ -160,7 +160,7 @@ html, body, [class*="css"] {
     padding: 11px !important;
     text-transform: uppercase !important;
 }
-.stButton > button:hover { background: #00d4f5 !important; }
+.stButton > button:hover { background: #00e8eb !important; }
 .stButton > button:active { transform: scale(0.98) !important; }
 
 /* Image captions */
@@ -188,14 +188,14 @@ div[data-testid="column"]:last-child {
 # CONSTANTS
 # ============================================================
 CLASS_NAMES = {0: "Normal", 1: "Bacterial Pneumonia", 2: "Viral Pneumonia"}
-CLASS_COLORS = {0: "#06d6a0", 1: "#ff4d6d", 2: "#ffd60a"}
+CLASS_COLORS = {0: "#00898B", 1: "#00CED1", 2: "#00688B"}
 CLASS_ICONS  = {0: "✓", 1: "⚠", 2: "⚠"}
 CLASS_DESC   = {
     0: "Tidak ditemukan indikasi infeksi. Struktur paru tampak dalam batas normal.",
     1: "Terdeteksi pola konsolidasi konsisten dengan infeksi bakterial. Segera konsultasikan ke dokter.",
     2: "Terdeteksi pola ground-glass opacity yang mengarah pada infeksi viral. Diperlukan pemeriksaan klinis lanjutan.",
 }
-PROB_COLORS = {0: "#06d6a0", 1: "#ff4d6d", 2: "#ffd60a"}
+PROB_COLORS  = {0: "#00898B", 1: "#00CED1", 2: "#00688B"}
 
 # ============================================================
 # MODEL LOADER
@@ -269,7 +269,7 @@ with left_col:
     <div class="stat-row">
         <div class="chip"><div class="cv">3</div><div class="cl">Classes</div></div>
         <div class="chip"><div class="cv" style="font-size:14px;">224²</div><div class="cl">Input px</div></div>
-        <div class="chip"><div class="cv" style="color:#06d6a0;font-size:14px;">CAM</div><div class="cl">Grad-CAM</div></div>
+        <div class="chip"><div class="cv" style="color:#00898B;font-size:14px;">CAM</div><div class="cl">Grad-CAM</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -316,7 +316,7 @@ with right_col:
         <div class="empty-state">
             <div class="empty-icon" style="opacity:0.2;">▶</div>
             <div class="empty-title">Citra siap dianalisis</div>
-            <div class="empty-sub" style="color:#334155;">
+            <div class="empty-sub" style="color:#004242;">
                 Klik <span style="color:#00b4d8;font-family:monospace;">▶ Analisis Gambar</span> di panel kiri untuk memulai inferensi.
             </div>
         </div>
@@ -355,7 +355,7 @@ with right_col:
                 <div style="flex:1;">
                     <div class="rdiag" style="color:{color};">{CLASS_ICONS[pred_class]} {CLASS_NAMES[pred_class]}</div>
                     <div class="rconf">CONFIDENCE: {conf:.2f}%</div>
-                    <div class="rdesc" style="border-color:{color};background:{color}12;color:#cbd5e1;">
+                    <div class="rdesc" style="border-color:{color};background:{color}12;color:#d4f5f5;">
                         {CLASS_DESC[pred_class]}
                     </div>
                 </div>
@@ -377,9 +377,9 @@ with right_col:
             w    = "600" if idx == pred_class else "400"
             prob_rows_html += (
                 f'<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">'
-                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#94a3b8;'
+                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#7ec8c8;'
                 f'width:168px;flex-shrink:0;font-weight:{w};">{name}</div>'
-                f'<div style="flex:1;height:6px;background:#111827;border-radius:3px;overflow:hidden;">'
+                f'<div style="flex:1;height:6px;background:#004242;border-radius:3px;overflow:hidden;">'
                 f'<div style="width:{p:.1f}%;height:100%;background:{c};border-radius:3px;"></div>'
                 f'</div>'
                 f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:{c};'
@@ -389,10 +389,10 @@ with right_col:
 
         st.markdown(
             f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;letter-spacing:2px;'
-            f'color:#475569;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+            f'color:#3d8080;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
             f'PROBABILITY DISTRIBUTION'
-            f'<div style="flex:1;height:1px;background:#1e2d45;"></div></div>'
-            f'<div style="background:#0d1421;border:1px solid #1e2d45;border-radius:10px;padding:20px 22px 8px 22px;">'
+            f'<div style="flex:1;height:1px;background:#005a5a;"></div></div>'
+            f'<div style="background:#002e2e;border:1px solid #005a5a;border-radius:10px;padding:20px 22px 8px 22px;">'
             f'{prob_rows_html}'
             f'</div>',
             unsafe_allow_html=True
@@ -411,14 +411,14 @@ with right_col:
             <div class="icard">
                 <div class="ihdr">
                     <span>Original X-Ray</span>
-                    <span class="itag" style="background:#1e2d45;color:#94a3b8;">RAW INPUT</span>
+                    <span class="itag" style="background:#005a5a;color:#7ec8c8;">RAW INPUT</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             st.image(original_np, use_container_width=True)
             st.markdown(
                 '<p style="font-family:\'JetBrains Mono\',monospace;font-size:11px;'
-                'color:#94a3b8;text-align:center;margin-top:4px;">Base Image Input</p>',
+                'color:#7ec8c8;text-align:center;margin-top:4px;">Base Image Input</p>',
                 unsafe_allow_html=True
             )
 
