@@ -13,51 +13,90 @@ from gradcam_inference import apply_gradcam
 # CONFIGURASI UTAMA GUI & TEMA
 # ============================================================
 st.set_page_config(
-    page_title="Pneumonia Diagnosis AI Dashboard", 
+    page_title="Pneumonia Diagnosis Dashboard", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# REVISI: Mengubah 'unsafe_index=True' menjadi 'unsafe_allow_html=True'
+# Kustomisasi CSS untuk merombak total tampilan mentah Streamlit
 st.markdown("""
     <style>
+    /* Mengatur latar belakang aplikasi agar clean */
+    .stApp {
+        background-color: #F8FAFC;
+    }
+    
+    /* Desain teks judul utama */
     .main-title {
-        font-size: 32px;
-        font-weight: 700;
-        color: #1E293B;
-        margin-bottom: 5px;
+        font-size: 28px;
+        font-weight: 800;
+        color: #0F172A;
+        margin-bottom: 2px;
+        font-family: 'Inter', sans-serif;
     }
     .sub-title {
-        font-size: 16px;
+        font-size: 14px;
         color: #64748B;
-        margin-bottom: 25px;
-    }
-    .card-normal {
-        background-color: #F0FDF4;
-        border-left: 5px solid #16A34A;
-        padding: 20px;
-        border-radius: 8px;
         margin-bottom: 20px;
     }
-    .card-pneumonia {
+    
+    /* Box Container Utama Hasil Diagnosis */
+    .diagnosis-container {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+    .status-normal {
+        background-color: #ECFDF5;
+        border-left: 6px solid #10B981;
+        color: #065F46;
+    }
+    .status-warning {
         background-color: #FEF2F2;
-        border-left: 5px solid #DC2626;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
+        border-left: 6px solid #EF4444;
+        color: #991B1B;
     }
-    .metric-title {
+    
+    /* Desain Grid Tampilan Gambar */
+    .image-card {
+        background-color: #FFFFFF;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+        text-align: center;
+    }
+    .image-label {
         font-size: 14px;
         font-weight: 600;
-        color: #475569;
+        color: #334155;
+        margin-bottom: 10px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    .metric-value {
-        font-size: 28px;
+    
+    /* Desain Indikator Probabilitas Minimalis di Bagian Bawah */
+    .prob-box {
+        background-color: #FFFFFF;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        margin-top: 20px;
+    }
+    .prob-title {
+        font-size: 15px;
         font-weight: 700;
-        color: #0F172A;
-        margin-top: 5px;
+        color: #1E293B;
+        margin-bottom: 15px;
+    }
+    .prob-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #475569;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -76,7 +115,7 @@ def load_model_from_hf():
     repo_id = "laisalkk/pneumonia-classification-deeplearning"
     filename = "E5_EfficientNetB0_best.pth"
     
-    with st.spinner("Mengunduh konfigurasi bobot model EfficientNetB0..."):
+    with st.spinner("Menghubungkan ke server model..."):
         model_file_path = hf_hub_download(repo_id=repo_id, filename=filename)
         model = get_inference_model("EfficientNetB0", num_classes=3)
         checkpoint = torch.load(model_file_path, map_location=torch.device('cpu'))
@@ -94,36 +133,37 @@ def load_model_from_hf():
 try:
     model = load_model_from_hf()
 except Exception as e:
-    st.error(f"Gagal sinkronisasi dengan Hugging Face: {e}")
+    st.error(f"Koneksi gagal: {e}")
     st.stop()
 
 # ============================================================
-# SIDEBAR CONTROL PANEL (SESUAI GAMBAR ACUAN)
+# SIDEBAR CONTROL PANEL
 # ============================================================
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3843/3843110.png", width=70)
-    st.markdown("### **Control Panel**")
-    st.write("Unggah data citra rontgen pasien di bawah ini untuk melakukan klasifikasi otomatis.")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.image("https://cdn-icons-png.flaticon.com/512/3843/3843110.png", width=60)
+    st.markdown("### **Input Medis Pasien**")
+    st.write("Silahkan unggah file citra rontgen dada (X-Ray) hasil scan laboratorium.")
     
     uploaded_file = st.file_uploader(
-        "Pilih file X-Ray Citra Paru", 
+        "Upload Citra Paru-Paru", 
         type=["png", "jpg", "jpeg"],
-        help="Menerima format standar JPG, JPEG, atau PNG"
+        label_visibility="collapsed"
     )
     
-    st.markdown("---")
-    st.markdown("### **Spesifikasi Sistem**")
-    st.info("**Model:** EfficientNetB0\n\n**XAI Tech:** Grad-CAM Core\n\n**Dataset:** Pneumonia Dataset (3 Class)")
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("💡 **Informasi Engine AI:**")
+    st.caption("Arsitektur: **EfficientNetB0**")
+    st.caption("Metode Penjelasan: **Grad-CAM Core**")
 
 # ============================================================
 # HALAMAN UTAMA / DASHBOARD VIEW
 # ============================================================
-# REVISI: Mengubah 'unsafe_index=True' menjadi 'unsafe_allow_html=True'
-st.markdown('<p class="main-title">🫁 Clinical Intelligence Dashboard</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Sistem deteksi Pneumonia berbasis Deep Learning & Explainable AI (XAI)</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-title">🫁 Clinical Intelligence AI Dashboard</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Sistem otomatis pemindaian citra rontgen dada untuk identifikasi Pneumonia dan interpretasi area infeksi.</p>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
-    # 1. Loading Gambar & Transformasi
+    # 1. Olah Gambar Input
     pil_image = Image.open(uploaded_file).convert("RGB")
     original_np = np.array(pil_image)
     
@@ -137,8 +177,8 @@ if uploaded_file is not None:
     ])
     input_tensor = eval_transform(pil_image).unsqueeze(0)
     
-    # 2. Proses Komputasi Model
-    with st.spinner("Menganalisis matriks dan pola opasitas citra rontgen..."):
+    # 2. Forward Pass Model & Grad-CAM
+    with st.spinner("Mengomparasi pola piksel dan opasitas paru..."):
         outputs = model(input_tensor)
         probabilities = torch.softmax(outputs, dim=1).squeeze(0).detach().numpy()
         pred_class = np.argmax(probabilities)
@@ -147,64 +187,81 @@ if uploaded_file is not None:
         gradcam_img = apply_gradcam(model, target_layer, input_tensor, pred_class, original_np)
 
     # ============================================================
-    # TAMPILAN CONTAINER UTAMA (CARD HASIL MEDIS)
+    # TOP CONTAINER: HASIL DIAGNOSIS UTAMA
     # ============================================================
-    card_style = "card-normal" if pred_class == 0 else "card-pneumonia"
-    status_icon = "✅" if pred_class == 0 else "⚠️"
+    status_class = "status-normal" if pred_class == 0 else "status-warning"
+    status_icon = "🟢" if pred_class == 0 else "🔴"
     
-    # REVISI: Mengubah 'unsafe_index=True' menjadi 'unsafe_allow_html=True'
     st.markdown(f"""
-        <div class="{card_style}">
-            <p class="metric-title">{status_icon} Diagnosis Utama Hasil Analisis Sistem AI</p>
-            <p class="metric-value">{CLASS_NAMES[pred_class]} ({probabilities[pred_class]*100:.2f}%)</p>
+        <div class="diagnosis-container {status_class}">
+            <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Hasil Diagnosis Utama</span>
+            <h2 style="margin: 4px 0 0 0; font-weight: 800; font-size: 24px;">
+                {status_icon} {CLASS_NAMES[pred_class]} — {probabilities[pred_class]*100:.2f}%
+            </h2>
         </div>
     """, unsafe_allow_html=True)
 
     # ============================================================
-    # TAMPILAN INFRASTRUKTUR CITRA BERSANDING
+    # MIDDLE CONTAINER: IMAGE GRID (BENTUK KARTU INDEPENDEN)
     # ============================================================
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("#### **Citra Asli Pasien**")
+        st.markdown('<div class="image-card">', unsafe_allow_html=True)
+        st.markdown('<p class="image-label">📸 Citra Rontgen Asli</p>', unsafe_allow_html=True)
         st.image(original_np, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         
     with col2:
-        st.markdown("#### **Visualisasi Lokasi Infeksi (Grad-CAM)**")
+        st.markdown('<div class="image-card">', unsafe_allow_html=True)
+        st.markdown(f'<p class="image-label">🔥 Pemetaan Grad-CAM ({CLASS_NAMES[pred_class]})</p>', unsafe_allow_html=True)
         st.image(gradcam_img, use_container_width=True)
-        
-    st.markdown("---")
-    
+        st.markdown('</div>', unsafe_allow_html=True)
+
     # ============================================================
-    # PROGRESS METRIC BAR SEPERTI GAMBAR ACUAN BARU
+    # BOTTOM CONTAINER: SCORE DISTRIBUTION ANALYSIS
     # ============================================================
-    st.markdown("#### **Distribusi Skor & Probabilitas Diagnosis**")
+    st.markdown('<div class="prob-box">', unsafe_allow_html=True)
+    st.markdown('<p class="prob-title">📊 Analisis Distribusi Nilai Keyakinan Model</p>', unsafe_allow_html=True)
     
     m_col1, m_col2, m_col3 = st.columns(3)
     
     with m_col1:
-        st.markdown(f"**{CLASS_NAMES[0]}**")
+        st.markdown(f"""
+            <div class="prob-label">
+                <span>{CLASS_NAMES[0]}</span>
+                <span style="color: #0F172A;">{probabilities[0]*100:.2f}%</span>
+            </div>
+        """, unsafe_allow_html=True)
         st.progress(float(probabilities[0]))
-        st.caption(f"Skor Keyakinan: {probabilities[0]*100:.2f}%")
         
     with m_col2:
-        st.markdown(f"**{CLASS_NAMES[1]}**")
+        st.markdown(f"""
+            <div class="prob-label">
+                <span>{CLASS_NAMES[1]}</span>
+                <span style="color: #0F172A;">{probabilities[1]*100:.2f}%</span>
+            </div>
+        """, unsafe_allow_html=True)
         st.progress(float(probabilities[1]))
-        st.caption(f"Skor Keyakinan: {probabilities[1]*100:.2f}%")
         
     with m_col3:
-        st.markdown(f"**{CLASS_NAMES[2]}**")
+        st.markdown(f"""
+            <div class="prob-label">
+                <span>{CLASS_NAMES[2]}</span>
+                <span style="color: #0F172A;">{probabilities[2]*100:.2f}%</span>
+            </div>
+        """, unsafe_allow_html=True)
         st.progress(float(probabilities[2]))
-        st.caption(f"Skor Keyakinan: {probabilities[2]*100:.2f}%")
+        
+    st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    st.info("👋 Selamat Datang! Silahkan gunakan menu panel di sebelah kiri untuk memasukkan file foto rontgen dada pasien.")
-    
-    col_empty1, col_empty2 = st.columns(2)
-    with col_empty1:
-        st.subheader("Bagaimana sistem AI bekerja?")
-        st.write("""
-        1. **Ekstraksi Fitur:** Jaringan konvolusi EfficientNetB0 memindai area paru untuk mencari infiltrat atau opasitas.
-        2. **XAI Mapping:** Grad-CAM akan menyorot area paling mencurigakan dengan warna hangat (merah/kuning).
-        3. **Diferensiasi Medis:** AI memisahkan tanda infeksi akibat bakteri ataupun virus secara spesifik.
-        """)
+    # Tampilan Standby Dashboard (Sangat Clean & Modern)
+    st.markdown("""
+        <div style="background-color: #EFF6FF; border: 1px dashed #BFDBFE; padding: 30px; border-radius: 12px; text-align: center; margin-top: 40px;">
+            <h3 style="color: #1E40AF; margin-top: 0;">Sistem Siap Digunakan</h3>
+            <p style="color: #1E3A8A; font-size: 14px; max-width: 600px; margin: 0 auto;">
+                Silahkan unggah file gambar rontgen dada (.png, .jpg, .jpeg) melalui panel menu <b>Input Medis Pasien</b> di sebelah kiri untuk melihat hasil analisis diagnosis serta peta Grad-CAM secara langsung.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
