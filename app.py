@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Menambahkan CSS Custom agar gaya tampilan mirip dengan dashboard medis premium
+# REVISI: Mengubah 'unsafe_index=True' menjadi 'unsafe_allow_html=True'
 st.markdown("""
     <style>
     .main-title {
@@ -60,7 +60,7 @@ st.markdown("""
         margin-top: 5px;
     }
     </style>
-""", unsafe_index=True)
+""", unsafe_allow_html=True)
 
 CLASS_NAMES = {
     0: "No Disease (Normal)",
@@ -118,8 +118,9 @@ with st.sidebar:
 # ============================================================
 # HALAMAN UTAMA / DASHBOARD VIEW
 # ============================================================
-st.markdown('<p class="main-title">🫁 Clinical Intelligence Dashboard</p>', unsafe_index=True)
-st.markdown('<p class="sub-title">Sistem deteksi Pneumonia berbasis Deep Learning & Explainable AI (XAI)</p>', unsafe_index=True)
+# REVISI: Mengubah 'unsafe_index=True' menjadi 'unsafe_allow_html=True'
+st.markdown('<p class="main-title">🫁 Clinical Intelligence Dashboard</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Sistem deteksi Pneumonia berbasis Deep Learning & Explainable AI (XAI)</p>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
     # 1. Loading Gambar & Transformasi
@@ -148,16 +149,16 @@ if uploaded_file is not None:
     # ============================================================
     # TAMPILAN CONTAINER UTAMA (CARD HASIL MEDIS)
     # ============================================================
-    # Tentukan style kartu berdasarkan apakah pasien normal atau sakit
     card_style = "card-normal" if pred_class == 0 else "card-pneumonia"
     status_icon = "✅" if pred_class == 0 else "⚠️"
     
+    # REVISI: Mengubah 'unsafe_index=True' menjadi 'unsafe_allow_html=True'
     st.markdown(f"""
         <div class="{card_style}">
             <p class="metric-title">{status_icon} Diagnosis Utama Hasil Analisis Sistem AI</p>
             <p class="metric-value">{CLASS_NAMES[pred_class]} ({probabilities[pred_class]*100:.2f}%)</p>
         </div>
-    """, unsafe_index=True)
+    """, unsafe_allow_html=True)
 
     # ============================================================
     # TAMPILAN INFRASTRUKTUR CITRA BERSANDING
@@ -179,7 +180,6 @@ if uploaded_file is not None:
     # ============================================================
     st.markdown("#### **Distribusi Skor & Probabilitas Diagnosis**")
     
-    # Membuat 3 kolom kartu metrik persentase di bagian bawah
     m_col1, m_col2, m_col3 = st.columns(3)
     
     with m_col1:
@@ -198,10 +198,8 @@ if uploaded_file is not None:
         st.caption(f"Skor Keyakinan: {probabilities[2]*100:.2f}%")
 
 else:
-    # Tampilan Standby Dashboard saat pertama kali dibuka (Sangat Bersih)
     st.info("👋 Selamat Datang! Silahkan gunakan menu panel di sebelah kiri untuk memasukkan file foto rontgen dada pasien.")
     
-    # Tambah placeholder layout estetik saat kosong
     col_empty1, col_empty2 = st.columns(2)
     with col_empty1:
         st.subheader("Bagaimana sistem AI bekerja?")
