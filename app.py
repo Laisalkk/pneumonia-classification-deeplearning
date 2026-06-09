@@ -20,13 +20,6 @@ st.set_page_config(
 
 # ============================================================
 # GLOBAL CSS
-# PERUBAHAN WARNA:
-#   - --text-3 dari #3d8080 → #5faaaa  (kontras lebih tinggi, rasio ~4.6:1)
-#   - CLASS_COLORS[2] dari #FFD93D (kuning) → #A78BFA (ungu)
-#     Alasan: cyan + merah + ungu jauh lebih aman untuk buta warna
-#     dibanding cyan + merah + kuning yang terlihat sama pada deuteranopia
-#   - Semua warna kelas kini punya perbedaan hue yang jelas di simulasi
-#     grayscale maupun deuteranopia/protanopia
 # ============================================================
 st.markdown("""
 <style>
@@ -35,17 +28,20 @@ st.markdown("""
 :root {
     --bg-deep:   #010F1A;
     --bg-panel:  #002e2e;
-    --bg-card:   #002727;
+    --bg-card:   #004242;
     --border:    #005a5a;
     --accent:    #00CED1;
-    --success:   #00898B;
-    --danger:    #00CED1;
-    --warn:      #00898B;
+    --success:   #00B4B6;
     --text-1:    #d4f5f5;
     --text-2:    #7ec8c8;
-    --text-3:    #5faaaa;   /* DIPERBAIKI: dari #3d8080 → lebih terang, kontras ~4.6:1 */
+    --text-3:    #6ab8b8;
     --mono:      'JetBrains Mono', monospace;
     --sans:      'Inter', sans-serif;
+
+    /* Warna kelas — dipilih agar berbeda jelas di simulasi buta warna */
+    --c-normal:    #38BDF8;   /* biru langit terang */
+    --c-bacterial: #F87171;   /* merah salmon terang */
+    --c-viral:     #C084FC;   /* ungu lavender terang */
 }
 
 html, body, [class*="css"] {
@@ -72,24 +68,18 @@ html, body, [class*="css"] {
 .status-pill {
     display: flex; align-items: center; gap: 8px;
     font-family: var(--mono); font-size: 11px; color: var(--success);
-    padding: 6px 14px; border: 1px solid #00898B30; border-radius: 4px; background: #00898B08;
+    padding: 6px 14px; border: 1px solid #00B4B630; border-radius: 4px; background: #00B4B608;
 }
 .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 /* ── SECTION HEADERS ── */
-.sechead {
-    display: flex; align-items: center; gap: 10px;
-    margin: 4px 0 12px 0;
-}
+.sechead { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px 0; }
 .sectl { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; color: var(--text-3); text-transform: uppercase; white-space: nowrap; }
 .secline { flex: 1; height: 1px; background: var(--border); }
 
 /* ── PANEL LABELS ── */
-.plabel {
-    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
-    color: var(--text-3); text-transform: uppercase; margin-bottom: 8px;
-}
+.plabel { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; color: var(--text-3); text-transform: uppercase; margin-bottom: 8px; }
 
 /* ── CARDS ── */
 .mbadge {
@@ -106,18 +96,48 @@ html, body, [class*="css"] {
 .cv { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--accent); }
 .cl { font-size: 10px; color: var(--text-3); margin-top: 3px; }
 
+/* ── LEGEND ── */
+.legend-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 5px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    margin-bottom: 6px;
+}
+.legend-sym { font-family: var(--mono); font-size: 11px; font-weight: 700; min-width: 36px; }
+.legend-name { font-family: var(--mono); font-size: 11px; color: var(--text-2); flex: 1; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── DISCLAIMER BOX ── */
+.disclaimer {
+    background: #0a1f1f;
+    border: 1px solid #1a4040;
+    border-left: 3px solid #6ab8b8;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.6;
+    margin-top: 10px;
+}
+.disclaimer strong { color: var(--text-2); display: block; margin-bottom: 4px; font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── INFO CHIP (metadata gambar) ── */
+.img-meta {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    margin-bottom: 10px;
+}
+.img-meta-item {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 5px; padding: 7px 10px;
+}
+.img-meta-label { font-size: 9px; color: var(--text-3); letter-spacing: 1px; text-transform: uppercase; font-family: var(--mono); }
+.img-meta-val { font-size: 13px; font-weight: 600; color: var(--text-1); font-family: var(--mono); margin-top: 2px; }
+
 /* ── RESULT CARD ── */
 .rcard { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
 .rdiag { font-family: var(--mono); font-size: 26px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 5px; }
 .rconf { font-family: var(--mono); font-size: 12px; color: var(--text-2); letter-spacing: 1px; text-transform: uppercase; }
 .rdesc { margin-top: 14px; padding: 10px 14px; border-radius: 6px; font-size: 13px; line-height: 1.6; border-left: 3px solid; }
-
-/* ── PROB BARS ── */
-.prob-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.prob-label { font-family: var(--mono); font-size: 12px; color: var(--text-2); width: 160px; flex-shrink: 0; }
-.prob-track { flex: 1; height: 6px; background: var(--bg-card); border-radius: 3px; overflow: hidden; }
-.prob-fill { height: 100%; border-radius: 3px; }
-.prob-pct { font-family: var(--mono); font-size: 12px; font-weight: 500; width: 54px; text-align: right; flex-shrink: 0; }
 
 /* ── IMAGE CARDS ── */
 .icard { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 4px; }
@@ -138,32 +158,20 @@ html, body, [class*="css"] {
 .empty-title { font-family: var(--mono); font-size: 16px; color: var(--text-3); letter-spacing: -0.3px; }
 .empty-sub { font-size: 13px; color: var(--text-3); max-width: 300px; line-height: 1.6; }
 
-/* ── STREAMLIT COMPONENT OVERRIDES ── */
+/* ── STREAMLIT OVERRIDES ── */
 [data-testid="stFileUploadDropzone"] {
-    background: #00CED110 !important;
-    border: 1.5px dashed #00688B !important;
-    border-radius: 8px !important;
+    background: #00CED110 !important; border: 1.5px dashed #00688B !important; border-radius: 8px !important;
 }
-[data-testid="stFileUploadDropzone"]:hover {
-    background: #00CED122 !important;
-    border-color: var(--accent) !important;
-}
+[data-testid="stFileUploadDropzone"]:hover { background: #00CED122 !important; border-color: var(--accent) !important; }
 [data-testid="stFileUploadDropzone"] p { color: var(--text-2) !important; font-size: 12px !important; }
 [data-testid="stFileUploadDropzone"] svg { stroke: var(--accent) !important; }
 .stFileUploader label { color: var(--text-3) !important; font-size: 10px !important; letter-spacing: 1px !important; font-family: var(--mono) !important; }
 
 .stButton > button {
-    width: 100% !important;
-    background: var(--accent) !important;
-    color: #002222 !important;
-    border: none !important;
-    border-radius: 6px !important;
-    font-family: var(--mono) !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    letter-spacing: 1.5px !important;
-    padding: 11px !important;
-    text-transform: uppercase !important;
+    width: 100% !important; background: var(--accent) !important; color: #002222 !important;
+    border: none !important; border-radius: 6px !important; font-family: var(--mono) !important;
+    font-size: 12px !important; font-weight: 600 !important; letter-spacing: 1.5px !important;
+    padding: 11px !important; text-transform: uppercase !important;
 }
 .stButton > button:hover { background: #00e8eb !important; }
 .stButton > button:active { transform: scale(0.98) !important; }
@@ -173,76 +181,35 @@ html, body, [class*="css"] {
     color: var(--text-3) !important; text-align: center !important;
     letter-spacing: 1px !important; text-transform: uppercase !important; margin-top: 4px !important;
 }
-
 .stSpinner > div { border-top-color: var(--accent) !important; }
 
-div[data-testid="column"]:first-child {
-    border-right: 1px solid var(--border);
-    padding-right: 24px !important;
-}
-div[data-testid="column"]:last-child {
-    padding-left: 24px !important;
-}
-
-/* ── CLASS BADGE (ikon kelas di prob bar) ── */
-/* Ditambahkan untuk membantu buta warna: setiap kelas punya simbol berbeda */
-.class-badge {
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    margin-right: 6px;
-    font-weight: 600;
-}
+div[data-testid="column"]:first-child { border-right: 1px solid var(--border); padding-right: 24px !important; }
+div[data-testid="column"]:last-child { padding-left: 24px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
 # CONSTANTS
 #
-# PERUBAHAN WARNA KELAS:
-#   Sebelum:  {0: "#00CED1", 1: "#FF6B6B", 2: "#FFD93D"}
-#   Sesudah:  {0: "#00CED1", 1: "#FF6B6B", 2: "#A78BFA"}
+# Warna kelas baru — dirancang untuk aman buta warna:
+#   Normal    → #38BDF8  biru langit  (hue 199°, terang)
+#   Bacterial → #F87171  merah salmon (hue   0°, terang)
+#   Viral     → #C084FC  ungu lavender(hue 280°, terang)
 #
-#   Alasan penggantian warna kelas 2 (Viral Pneumonia):
-#   - Kuning (#FFD93D) dan merah (#FF6B6B) pada deuteranopia/protanopia
-#     keduanya muncul sebagai warna kecoklatan/olive yang sangat mirip.
-#   - Ungu (#A78BFA) memiliki hue yang jauh berbeda dari cyan dan merah,
-#     sehingga ketiga kelas dapat dibedakan bahkan dalam mode grayscale
-#     maupun simulasi buta warna merah-hijau.
-#
-# DITAMBAHKAN: CLASS_SYMBOLS untuk perbedaan non-warna
-#   Setiap kelas kini memiliki simbol unik sebagai backup visual
-#   selain perbedaan warna — penting untuk aksesibilitas buta warna.
+#   Ketiga warna berbeda hue > 70° satu sama lain.
+#   Pada simulasi deuteranopia: biru ≠ oranye-kecoklatan ≠ biru-ungu.
+#   Pada grayscale: luminansi berbeda cukup jauh (biru ~46%, merah ~38%, ungu ~42%).
+#   Ditambah simbol [N] [B] [V] sebagai backup non-warna.
 # ============================================================
 CLASS_NAMES   = {0: "Normal", 1: "Bacterial Pneumonia", 2: "Viral Pneumonia"}
-
-CLASS_COLORS  = {
-    0: "#00CED1",   # Cyan   — Normal (tidak berubah)
-    1: "#FF6B6B",   # Merah  — Bacterial (tidak berubah)
-    2: "#A78BFA",   # Ungu   — Viral (DIPERBAIKI dari #FFD93D kuning)
-}
-
-CLASS_ICONS   = {
-    0: "✓",   # centang = aman/normal
-    1: "⚠",   # segitiga = perhatian
-    2: "⚠",   # segitiga = perhatian
-}
-
-# Simbol tambahan — membedakan kelas secara non-warna (penting untuk buta warna)
-CLASS_SYMBOLS = {
-    0: "[ N ]",   # Normal
-    1: "[ B ]",   # Bacterial
-    2: "[ V ]",   # Viral
-}
-
+CLASS_COLORS  = {0: "#38BDF8", 1: "#F87171", 2: "#C084FC"}
+CLASS_ICONS   = {0: "✓", 1: "⚠", 2: "⚠"}
+CLASS_SYMBOLS = {0: "[ N ]", 1: "[ B ]", 2: "[ V ]"}
 CLASS_DESC    = {
     0: "Tidak ditemukan indikasi infeksi. Struktur paru tampak dalam batas normal.",
     1: "Terdeteksi pola konsolidasi konsisten dengan infeksi bakterial. Segera konsultasikan ke dokter.",
     2: "Terdeteksi pola ground-glass opacity yang mengarah pada infeksi viral. Diperlukan pemeriksaan klinis lanjutan.",
 }
-
-PROB_COLORS   = CLASS_COLORS   # alias, tetap satu sumber kebenaran
 
 # ============================================================
 # MODEL LOADER
@@ -296,6 +263,7 @@ left_col, right_col = st.columns([1, 2.4], gap="medium")
 # ══════════════════════════════════════════════
 with left_col:
 
+    # Model badge
     st.markdown('<div class="plabel">Active Model</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="mbadge">
@@ -309,39 +277,34 @@ with left_col:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # Architecture stats
     st.markdown('<div class="plabel">Architecture Info</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="stat-row">
         <div class="chip"><div class="cv">3</div><div class="cl">Classes</div></div>
         <div class="chip"><div class="cv" style="font-size:14px;">224²</div><div class="cl">Input px</div></div>
-        <div class="chip"><div class="cv" style="color:#00898B;font-size:14px;">CAM</div><div class="cl">Grad-CAM</div></div>
+        <div class="chip"><div class="cv" style="color:#00B4B6;font-size:14px;">CAM</div><div class="cl">Grad-CAM</div></div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Legenda warna kelas — membantu pengguna buta warna memahami sistem warna
+    # Class legend
     st.markdown('<div class="plabel">Class Legend</div>', unsafe_allow_html=True)
-    legend_html = ""
     for idx, name in CLASS_NAMES.items():
         c   = CLASS_COLORS[idx]
         sym = CLASS_SYMBOLS[idx]
-        legend_html += (
-            f'<div style="display:flex;align-items:center;gap:10px;'
-            f'margin-bottom:7px;padding:7px 10px;background:var(--bg-card);'
-            f'border:1px solid var(--border);border-radius:5px;">'
-            f'<span style="font-family:var(--mono);font-size:11px;font-weight:700;'
-            f'color:{c};min-width:40px;">{sym}</span>'
-            f'<span style="font-family:var(--mono);font-size:11px;color:#7ec8c8;">'
-            f'{name}</span>'
-            f'<span style="margin-left:auto;width:12px;height:12px;border-radius:50%;'
-            f'background:{c};display:inline-block;flex-shrink:0;"></span>'
-            f'</div>'
-        )
-    st.markdown(legend_html, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="legend-item">
+            <span class="legend-sym" style="color:{c};">{sym}</span>
+            <span class="legend-name">{name}</span>
+            <span class="legend-dot" style="background:{c};"></span>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # File uploader
     st.markdown('<div class="plabel">Input X-Ray</div>', unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
         "Upload chest X-Ray image",
@@ -351,6 +314,31 @@ with left_col:
 
     if uploaded_file:
         pil_thumb = Image.open(uploaded_file).convert("RGB")
+        w_px, h_px = pil_thumb.size
+        file_kb = uploaded_file.size // 1024
+
+        # Metadata gambar — info tambahan yang berguna
+        st.markdown(f"""
+        <div class="img-meta">
+            <div class="img-meta-item">
+                <div class="img-meta-label">Resolusi</div>
+                <div class="img-meta-val">{w_px}×{h_px}</div>
+            </div>
+            <div class="img-meta-item">
+                <div class="img-meta-label">Ukuran</div>
+                <div class="img-meta-val">{file_kb} KB</div>
+            </div>
+            <div class="img-meta-item">
+                <div class="img-meta-label">Format</div>
+                <div class="img-meta-val">{uploaded_file.name.split('.')[-1].upper()}</div>
+            </div>
+            <div class="img-meta-item">
+                <div class="img-meta-label">Mode</div>
+                <div class="img-meta-val">RGB</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         st.image(pil_thumb, use_container_width=True, caption=uploaded_file.name[:32])
         uploaded_file.seek(0)
 
@@ -359,13 +347,23 @@ with left_col:
     else:
         run_btn = False
 
+    # Disclaimer medis — ditambahkan atas saran
+    st.markdown("""
+    <div class="disclaimer">
+        <strong>⚠ Disclaimer Medis</strong>
+        Hasil analisis ini bersifat <em>skrining awal berbasis AI</em> dan
+        <strong style="color:#d4f5f5;">bukan diagnosis medis resmi</strong>.
+        Selalu konsultasikan hasil ini kepada dokter atau tenaga medis yang berkompeten
+        sebelum mengambil keputusan klinis apapun.
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════
 # RIGHT COLUMN
 # ══════════════════════════════════════════════
 with right_col:
 
-    # ── Empty state ──
     if not uploaded_file:
         st.markdown("""
         <div class="empty-state">
@@ -375,7 +373,6 @@ with right_col:
         </div>
         """, unsafe_allow_html=True)
 
-    # ── Waiting state ──
     elif not run_btn:
         st.markdown("""
         <div class="empty-state">
@@ -387,7 +384,6 @@ with right_col:
         </div>
         """, unsafe_allow_html=True)
 
-    # ── Run inference ──
     else:
         pil_image   = Image.open(uploaded_file).convert("RGB")
         original_np = np.array(pil_image)
@@ -421,16 +417,16 @@ with right_col:
                 <div style="flex:1;">
                     <div class="rdiag" style="color:{color};">
                         {CLASS_ICONS[pred_class]} {CLASS_NAMES[pred_class]}
-                        <span style="font-size:14px;opacity:0.6;margin-left:8px;">{symbol}</span>
+                        <span style="font-size:14px;opacity:0.55;margin-left:8px;">{symbol}</span>
                     </div>
                     <div class="rconf">CONFIDENCE: {conf:.2f}%</div>
-                    <div class="rdesc" style="border-color:{color};background:{color}12;color:#d4f5f5;">
+                    <div class="rdesc" style="border-color:{color};background:{color}15;color:#d4f5f5;">
                         {CLASS_DESC[pred_class]}
                     </div>
                 </div>
                 <div style="text-align:right;flex-shrink:0;">
                     <div style="font-family:var(--mono);font-size:40px;font-weight:700;color:{color};line-height:1;">{conf:.1f}%</div>
-                    <div style="font-size:10px;color:#5faaaa;letter-spacing:1px;margin-top:4px;">CONFIDENCE SCORE</div>
+                    <div style="font-size:10px;color:#6ab8b8;letter-spacing:1px;margin-top:4px;">CONFIDENCE SCORE</div>
                 </div>
             </div>
         </div>
@@ -439,38 +435,35 @@ with right_col:
         st.markdown("<br>", unsafe_allow_html=True)
 
         # ── Probability Distribution ──
-        # DITAMBAHKAN: simbol CLASS_SYMBOLS pada setiap baris
-        # sehingga setiap kelas dapat dibedakan tanpa mengandalkan warna saja
         prob_rows_html = ""
         for idx, name in CLASS_NAMES.items():
             p   = probs[idx] * 100
-            c   = PROB_COLORS[idx]
+            c   = CLASS_COLORS[idx]
             sym = CLASS_SYMBOLS[idx]
-            w   = "600" if idx == pred_class else "400"
+            w   = "700" if idx == pred_class else "400"
+            # Progress bar height lebih besar untuk kelas prediksi
+            bar_h = "8px" if idx == pred_class else "5px"
             prob_rows_html += (
-                f'<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">'
-                # Label kelas dengan simbol — diferensiasi non-warna
-                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#7ec8c8;'
-                f'width:220px;flex-shrink:0;font-weight:{w};">'
-                f'<span style="color:{c};margin-right:6px;font-size:11px;">{sym}</span>'
-                f'{name}'
+                f'<div style="display:flex;align-items:center;gap:14px;margin-bottom:13px;">'
+                f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;'
+                f'width:230px;flex-shrink:0;font-weight:{w};">'
+                f'<span style="color:{c};margin-right:7px;font-size:10px;">{sym}</span>'
+                f'<span style="color:#7ec8c8;">{name}</span>'
                 f'</div>'
-                # Progress bar
-                f'<div style="flex:1;height:6px;background:#004242;border-radius:3px;overflow:hidden;">'
-                f'<div style="width:{p:.1f}%;height:100%;background:{c};border-radius:3px;"></div>'
+                f'<div style="flex:1;height:{bar_h};background:#004242;border-radius:4px;overflow:hidden;transition:height 0.2s;">'
+                f'<div style="width:{p:.1f}%;height:100%;background:{c};border-radius:4px;"></div>'
                 f'</div>'
-                # Persentase
                 f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:{c};'
-                f'width:54px;text-align:right;flex-shrink:0;font-weight:{w};">{p:.2f}%</div>'
+                f'width:56px;text-align:right;flex-shrink:0;font-weight:{w};">{p:.2f}%</div>'
                 f'</div>'
             )
 
         st.markdown(
             f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;letter-spacing:2px;'
-            f'color:#5faaaa;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+            f'color:#6ab8b8;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
             f'PROBABILITY DISTRIBUTION'
             f'<div style="flex:1;height:1px;background:#005a5a;"></div></div>'
-            f'<div style="background:#002e2e;border:1px solid #005a5a;border-radius:10px;padding:20px 22px 8px 22px;">'
+            f'<div style="background:#002e2e;border:1px solid #005a5a;border-radius:10px;padding:20px 22px 10px 22px;">'
             f'{prob_rows_html}'
             f'</div>',
             unsafe_allow_html=True
@@ -485,7 +478,7 @@ with right_col:
 
         ic1, ic2 = st.columns(2, gap="medium")
         with ic1:
-            st.markdown(f"""
+            st.markdown("""
             <div class="icard">
                 <div class="ihdr">
                     <span>Original X-Ray</span>
@@ -505,7 +498,7 @@ with right_col:
             <div class="icard">
                 <div class="ihdr">
                     <span>Grad-CAM Attention</span>
-                    <span class="itag" style="background:{color}18;color:{color};">XAI OUTPUT</span>
+                    <span class="itag" style="background:{color}22;color:{color};">XAI OUTPUT</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -516,3 +509,19 @@ with right_col:
                 f'Region of interest → {symbol} {CLASS_NAMES[pred_class]}</p>',
                 unsafe_allow_html=True
             )
+
+        # ── Catatan interpretasi Grad-CAM ── (fitur baru)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="background:#0a1f1f;border:1px solid #1a4040;border-radius:8px;padding:14px 18px;">
+            <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:#6ab8b8;
+                text-transform:uppercase;margin-bottom:10px;">Interpretasi Grad-CAM</div>
+            <div style="font-size:12px;color:#7ec8c8;line-height:1.7;">
+                Area <span style="color:#FF4500;font-weight:600;">merah-oranye</span> pada peta panas menunjukkan
+                region yang paling berkontribusi terhadap prediksi model.
+                Area <span style="color:#4169E1;font-weight:600;">biru</span> menunjukkan region dengan
+                kontribusi rendah. Perhatikan distribusi area panas di lapang paru
+                untuk memvalidasi kesesuaian dengan gambaran klinis.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
