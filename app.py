@@ -4,12 +4,12 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 from huggingface_hub import hf_hub_download
- 
+
 from models_inference import get_inference_model
 from gradcam_inference import apply_gradcam
- 
+
 # ============================================================
-# PAGE CONFIG & GLOBAL CSS
+# PAGE CONFIG
 # ============================================================
 st.set_page_config(
     page_title="PneumoScan — Chest X-Ray AI",
@@ -17,410 +17,184 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
- 
+
+# ============================================================
+# GLOBAL CSS — styling only, zero layout logic here
+# ============================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
- 
-/* ── ROOT THEME ── */
+
 :root {
-    --bg-deep:    #090d13;
-    --bg-panel:   #0d1421;
-    --bg-card:    #111827;
-    --bg-hover:   #1a2438;
-    --border:     #1e2d45;
-    --border-lit: #1e4d7b;
-    --accent:     #00b4d8;
-    --accent-dim: #0077a8;
-    --accent-glow:#00b4d820;
-    --danger:     #ff4d6d;
-    --danger-dim: #c9184a;
-    --warn:       #ffd60a;
-    --success:    #06d6a0;
-    --text-1:     #e2e8f0;
-    --text-2:     #94a3b8;
-    --text-3:     #475569;
-    --mono:       'JetBrains Mono', monospace;
-    --sans:       'Inter', sans-serif;
+    --bg-deep:   #090d13;
+    --bg-panel:  #0d1421;
+    --bg-card:   #111827;
+    --border:    #1e2d45;
+    --accent:    #00b4d8;
+    --success:   #06d6a0;
+    --danger:    #ff4d6d;
+    --warn:      #ffd60a;
+    --text-1:    #e2e8f0;
+    --text-2:    #94a3b8;
+    --text-3:    #475569;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
 }
- 
-/* ── GLOBAL RESET ── */
+
 html, body, [class*="css"] {
     background-color: var(--bg-deep) !important;
     color: var(--text-1) !important;
     font-family: var(--sans) !important;
 }
- 
-.stApp {
-    background: var(--bg-deep) !important;
-}
- 
-/* Hide default Streamlit chrome */
+.stApp { background: var(--bg-deep) !important; }
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 0 !important; max-width: 100% !important; }
- 
+.block-container { padding: 1rem 1.5rem 2rem !important; max-width: 100% !important; }
+
 /* ── TOPBAR ── */
 .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 32px;
-    background: var(--bg-panel);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0 16px 0;
     border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    margin-bottom: 20px;
 }
-.topbar-logo {
-    font-family: var(--mono);
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-    color: var(--text-1);
-}
-.topbar-logo span { color: var(--accent); }
-.topbar-sub {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--text-3);
-    text-transform: uppercase;
-    font-family: var(--mono);
-    margin-top: 2px;
-}
+.logo { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text-1); }
+.logo span { color: var(--accent); }
+.sub { font-size: 10px; letter-spacing: 2px; color: var(--text-3); text-transform: uppercase; font-family: var(--mono); margin-top: 3px; }
 .status-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--success);
-    padding: 6px 14px;
-    border: 1px solid #06d6a030;
-    border-radius: 4px;
-    background: #06d6a008;
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px; color: var(--success);
+    padding: 6px 14px; border: 1px solid #06d6a030; border-radius: 4px; background: #06d6a008;
 }
-.status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--success);
-    animation: pulse 2s infinite;
+.sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── SECTION HEADERS ── */
+.sechead {
+    display: flex; align-items: center; gap: 10px;
+    margin: 4px 0 12px 0;
 }
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+.sectl { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; color: var(--text-3); text-transform: uppercase; white-space: nowrap; }
+.secline { flex: 1; height: 1px; background: var(--border); }
+
+/* ── PANEL LABELS ── */
+.plabel {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    color: var(--text-3); text-transform: uppercase; margin-bottom: 8px;
 }
- 
-/* ── MAIN LAYOUT ── */
-.main-grid {
-    display: grid;
-    grid-template-columns: 340px 1fr;
-    gap: 0;
-    min-height: calc(100vh - 57px);
+
+/* ── CARDS ── */
+.mbadge {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 6px;
 }
- 
-/* ── SIDEBAR PANEL ── */
-.side-panel {
-    background: var(--bg-panel);
-    border-right: 1px solid var(--border);
-    padding: 24px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-.panel-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--text-3);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-}
- 
-/* ── UPLOAD ZONE ── */
-.upload-zone {
-    border: 1.5px dashed var(--border-lit);
-    border-radius: 8px;
-    padding: 28px 16px;
-    text-align: center;
-    background: var(--accent-glow);
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-}
-.upload-zone:hover {
-    border-color: var(--accent);
-    background: #00b4d830;
-}
-.upload-icon { font-size: 28px; margin-bottom: 8px; }
-.upload-text { font-size: 13px; color: var(--text-2); line-height: 1.5; }
-.upload-hint { font-size: 11px; color: var(--text-3); margin-top: 6px; font-family: var(--mono); }
- 
-/* ── MODEL BADGE ── */
-.model-badge {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-}
-.model-name {
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--accent);
-    font-weight: 500;
-}
-.model-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
-.model-acc {
-    font-family: var(--mono);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--success);
-}
- 
-/* ── CONTENT AREA ── */
-.content-area {
-    background: var(--bg-deep);
-    padding: 28px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-.section-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-.section-title {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--text-3);
-    text-transform: uppercase;
-}
-.section-line {
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-}
- 
+.mname { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 500; }
+.mmeta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.macc { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--success); }
+
+.stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.chip { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; }
+.cv { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--accent); }
+.cl { font-size: 10px; color: var(--text-3); margin-top: 3px; }
+
 /* ── RESULT CARD ── */
-.result-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 24px 28px;
+.rcard { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
+.rdiag { font-family: var(--mono); font-size: 26px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 5px; }
+.rconf { font-family: var(--mono); font-size: 12px; color: var(--text-2); letter-spacing: 1px; text-transform: uppercase; }
+.rdesc { margin-top: 14px; padding: 10px 14px; border-radius: 6px; font-size: 13px; line-height: 1.6; border-left: 3px solid; }
+
+/* ── PROB BARS ── */
+.prob-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.prob-label { font-family: var(--mono); font-size: 12px; color: var(--text-2); width: 160px; flex-shrink: 0; }
+.prob-track { flex: 1; height: 6px; background: var(--bg-card); border-radius: 3px; overflow: hidden; }
+.prob-fill { height: 100%; border-radius: 3px; }
+.prob-pct { font-family: var(--mono); font-size: 12px; font-weight: 500; width: 54px; text-align: right; flex-shrink: 0; }
+
+/* ── IMAGE CARDS ── */
+.icard { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 4px; }
+.ihdr {
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--text-3);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    display: flex; align-items: center; justify-content: space-between;
 }
-.result-diagnosis {
-    font-family: var(--mono);
-    font-size: 32px;
-    font-weight: 600;
-    letter-spacing: -1px;
-    line-height: 1.1;
-    margin-bottom: 6px;
+.itag { font-size: 9px; padding: 2px 8px; border-radius: 3px; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 60vh; text-align: center; gap: 14px;
 }
-.result-conf {
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--text-2);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-.result-desc {
-    margin-top: 16px;
-    padding: 12px 16px;
-    border-radius: 6px;
-    font-size: 13px;
-    line-height: 1.6;
-    border-left: 3px solid;
-}
- 
-/* ── PROBABILITY BARS ── */
-.prob-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-}
-.prob-label {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-2);
-    width: 160px;
-    flex-shrink: 0;
-}
-.prob-track {
-    flex: 1;
-    height: 6px;
-    background: var(--bg-card);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.prob-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.8s ease;
-}
-.prob-pct {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    width: 54px;
-    text-align: right;
-    flex-shrink: 0;
-}
- 
-/* ── IMAGE CONTAINER ── */
-.img-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-}
-.img-header {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-3);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.img-tag {
-    font-size: 10px;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-family: var(--mono);
-}
- 
-/* ── STAT CHIPS ── */
-.stat-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-}
-.stat-chip {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
-    text-align: center;
-}
-.stat-value {
-    font-family: var(--mono);
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--accent);
-    line-height: 1;
-}
-.stat-label {
-    font-size: 11px;
-    color: var(--text-3);
-    margin-top: 5px;
-    letter-spacing: 0.5px;
-}
- 
+.empty-icon { font-size: 60px; opacity: 0.12; }
+.empty-title { font-family: var(--mono); font-size: 16px; color: var(--text-3); letter-spacing: -0.3px; }
+.empty-sub { font-size: 13px; color: var(--text-3); max-width: 300px; line-height: 1.6; }
+
 /* ── STREAMLIT COMPONENT OVERRIDES ── */
-.stFileUploader > div {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-}
-.stFileUploader label { display: none !important; }
+/* File uploader */
 [data-testid="stFileUploadDropzone"] {
-    border: 1.5px dashed var(--border-lit) !important;
+    background: #00b4d810 !important;
+    border: 1.5px dashed #1e4d7b !important;
     border-radius: 8px !important;
-    background: var(--accent-glow) !important;
-    padding: 24px !important;
 }
 [data-testid="stFileUploadDropzone"]:hover {
+    background: #00b4d822 !important;
     border-color: var(--accent) !important;
-    background: #00b4d825 !important;
 }
-[data-testid="stFileUploadDropzone"] p { color: var(--text-2) !important; font-size: 13px !important; }
- 
+[data-testid="stFileUploadDropzone"] p { color: var(--text-2) !important; font-size: 12px !important; }
+[data-testid="stFileUploadDropzone"] svg { stroke: var(--accent) !important; }
+.stFileUploader label { color: var(--text-3) !important; font-size: 10px !important; letter-spacing: 1px !important; font-family: var(--mono) !important; }
+
+/* Button */
 .stButton > button {
-    width: 100%;
+    width: 100% !important;
     background: var(--accent) !important;
     color: #000 !important;
     border: none !important;
     border-radius: 6px !important;
     font-family: var(--mono) !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     font-weight: 600 !important;
-    letter-spacing: 1px !important;
-    padding: 12px !important;
+    letter-spacing: 1.5px !important;
+    padding: 11px !important;
     text-transform: uppercase !important;
-    cursor: pointer !important;
-    transition: background 0.2s !important;
 }
-.stButton > button:hover {
-    background: #00d4f5 !important;
-}
- 
-.stSpinner > div { border-color: var(--accent) transparent transparent !important; }
- 
-/* Override image captions */
+.stButton > button:hover { background: #00d4f5 !important; }
+.stButton > button:active { transform: scale(0.98) !important; }
+
+/* Image captions */
 [data-testid="stImage"] p {
-    font-family: var(--mono) !important;
-    font-size: 11px !important;
-    color: var(--text-3) !important;
-    text-align: center !important;
-    letter-spacing: 1px !important;
-    text-transform: uppercase !important;
-    margin-top: 6px !important;
+    font-family: var(--mono) !important; font-size: 10px !important;
+    color: var(--text-3) !important; text-align: center !important;
+    letter-spacing: 1px !important; text-transform: uppercase !important; margin-top: 4px !important;
 }
- 
-/* Warning / info banners */
-.stAlert {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 6px !important;
-    color: var(--text-1) !important;
+
+/* Spinner */
+.stSpinner > div { border-top-color: var(--accent) !important; }
+
+/* Vertical divider between columns via border */
+div[data-testid="column"]:first-child {
+    border-right: 1px solid var(--border);
+    padding-right: 24px !important;
 }
- 
-/* Divider */
-hr { border-color: var(--border) !important; margin: 0 !important; }
+div[data-testid="column"]:last-child {
+    padding-left: 24px !important;
+}
 </style>
 """, unsafe_allow_html=True)
- 
+
 # ============================================================
 # CONSTANTS
 # ============================================================
-CLASS_NAMES = {
-    0: "Normal",
-    1: "Bacterial Pneumonia",
-    2: "Viral Pneumonia"
-}
- 
-CLASS_COLORS = {
-    0: "#06d6a0",   # success green
-    1: "#ff4d6d",   # danger red
-    2: "#ffd60a",   # warning amber
-}
- 
-CLASS_ICONS = {
-    0: "✓",
-    1: "⚠",
-    2: "⚠",
-}
- 
-CLASS_DESC = {
-    0: "Tidak ditemukan indikasi infeksi pada citra rontgen dada. Struktur paru tampak dalam batas normal.",
-    1: "Terdeteksi pola konsolidasi konsisten dengan infeksi bakterial. Segera konsultasikan ke dokter untuk evaluasi lebih lanjut.",
+CLASS_NAMES = {0: "Normal", 1: "Bacterial Pneumonia", 2: "Viral Pneumonia"}
+CLASS_COLORS = {0: "#06d6a0", 1: "#ff4d6d", 2: "#ffd60a"}
+CLASS_ICONS  = {0: "✓", 1: "⚠", 2: "⚠"}
+CLASS_DESC   = {
+    0: "Tidak ditemukan indikasi infeksi. Struktur paru tampak dalam batas normal.",
+    1: "Terdeteksi pola konsolidasi konsisten dengan infeksi bakterial. Segera konsultasikan ke dokter.",
     2: "Terdeteksi pola ground-glass opacity yang mengarah pada infeksi viral. Diperlukan pemeriksaan klinis lanjutan.",
 }
- 
-PROB_COLORS = {
-    0: "#06d6a0",
-    1: "#ff4d6d",
-    2: "#ffd60a",
-}
- 
+PROB_COLORS = {0: "#06d6a0", 1: "#ff4d6d", 2: "#ffd60a"}
+
 # ============================================================
 # MODEL LOADER
 # ============================================================
@@ -429,268 +203,216 @@ def load_model_from_hf():
     repo_id = "laisalkk/pneumonia-classification-deeplearning"
     filename = "E5_EfficientNetB0_best.pth"
     with st.spinner("Mengunduh model dari Hugging Face..."):
-        model_file_path = hf_hub_download(repo_id=repo_id, filename=filename)
+        path = hf_hub_download(repo_id=repo_id, filename=filename)
         model = get_inference_model("EfficientNetB0", num_classes=3)
-        checkpoint = torch.load(model_file_path, map_location=torch.device('cpu'))
-        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['model_state_dict'])
-        elif isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['state_dict'])
+        ckpt = torch.load(path, map_location="cpu")
+        if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+            model.load_state_dict(ckpt["model_state_dict"])
+        elif isinstance(ckpt, dict) and "state_dict" in ckpt:
+            model.load_state_dict(ckpt["state_dict"])
         else:
-            model.load_state_dict(checkpoint)
+            model.load_state_dict(ckpt)
         model.eval()
     return model
- 
+
 try:
     model = load_model_from_hf()
-    model_loaded = True
 except Exception as e:
-    model_loaded = False
-    load_error = str(e)
- 
+    st.error(f"❌ Gagal memuat model: {e}")
+    st.stop()
+
 # ============================================================
 # TOPBAR
 # ============================================================
 st.markdown("""
 <div class="topbar">
     <div>
-        <div class="topbar-logo">Pneumo<span>Scan</span></div>
-        <div class="topbar-sub">Chest X-Ray · Deep Learning · Explainable AI</div>
+        <div class="logo">Pneumo<span>Scan</span></div>
+        <div class="sub">Chest X-Ray · Deep Learning · Explainable AI</div>
     </div>
     <div class="status-pill">
-        <div class="status-dot"></div>
+        <div class="sdot"></div>
         SYSTEM ONLINE · EfficientNetB0
     </div>
 </div>
 """, unsafe_allow_html=True)
- 
-if not model_loaded:
-    st.error(f"❌ Gagal memuat model: {load_error}")
-    st.stop()
- 
+
 # ============================================================
-# LAYOUT: two-column via st.columns
+# MAIN LAYOUT — Streamlit columns (LEFT: input | RIGHT: output)
 # ============================================================
-left_col, right_col = st.columns([1, 2.2], gap="small")
- 
-# ─── LEFT PANEL ─────────────────────────────────────────────
+left_col, right_col = st.columns([1, 2.4], gap="medium")
+
+# ══════════════════════════════════════════════
+# LEFT COLUMN — All native Streamlit widgets
+# ══════════════════════════════════════════════
 with left_col:
+
+    # Model badge
+    st.markdown('<div class="plabel">Active Model</div>', unsafe_allow_html=True)
     st.markdown("""
-    <div style="background:#0d1421; border-right:1px solid #1e2d45; padding:24px 20px; min-height:calc(100vh - 57px);">
-    """, unsafe_allow_html=True)
- 
-    # Model info
-    st.markdown('<div class="panel-label">Active Model</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="model-badge">
+    <div class="mbadge">
         <div>
-            <div class="model-name">EfficientNetB0</div>
-            <div class="model-meta">ImageNet pretrained · 3-class</div>
+            <div class="mname">EfficientNetB0</div>
+            <div class="mmeta">ImageNet pretrained · 3-class</div>
         </div>
-        <div class="model-acc">—</div>
+        <div class="macc">XAI</div>
     </div>
     """, unsafe_allow_html=True)
- 
-    st.markdown("<div style='margin:20px 0 0 0'></div>", unsafe_allow_html=True)
- 
-    # Stats
-    st.markdown('<div class="panel-label">Architecture Info</div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Architecture stats
+    st.markdown('<div class="plabel">Architecture Info</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="stat-row">
-        <div class="stat-chip">
-            <div class="stat-value">3</div>
-            <div class="stat-label">Classes</div>
-        </div>
-        <div class="stat-chip">
-            <div class="stat-value" style="font-size:16px;">224²</div>
-            <div class="stat-label">Input</div>
-        </div>
-        <div class="stat-chip">
-            <div class="stat-value" style="color:#06d6a0;">XAI</div>
-            <div class="stat-label">Grad-CAM</div>
-        </div>
+        <div class="chip"><div class="cv">3</div><div class="cl">Classes</div></div>
+        <div class="chip"><div class="cv" style="font-size:14px;">224²</div><div class="cl">Input px</div></div>
+        <div class="chip"><div class="cv" style="color:#06d6a0;font-size:14px;">CAM</div><div class="cl">Grad-CAM</div></div>
     </div>
     """, unsafe_allow_html=True)
- 
-    st.markdown("<div style='margin:20px 0 0 0'></div>", unsafe_allow_html=True)
- 
-    # Upload
-    st.markdown('<div class="panel-label">Input X-Ray</div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # File uploader — native widget
+    st.markdown('<div class="plabel">Input X-Ray</div>', unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
-        "Upload",
+        "Upload chest X-Ray image",
         type=["png", "jpg", "jpeg"],
         label_visibility="collapsed"
     )
- 
+
+    # Preview thumbnail
     if uploaded_file:
-        pil_image_thumb = Image.open(uploaded_file).convert("RGB")
-        st.image(pil_image_thumb, use_container_width=True,
-                 caption=f"↑ {uploaded_file.name[:28]}")
+        pil_thumb = Image.open(uploaded_file).convert("RGB")
+        st.image(pil_thumb, use_container_width=True, caption=uploaded_file.name[:32])
         uploaded_file.seek(0)
- 
-        # Analyze button
-        st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
-        run_analysis = st.button("▶  Analisis Gambar", use_container_width=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        run_btn = st.button("▶  Analisis Gambar", use_container_width=True)
     else:
-        st.markdown("""
-        <div class="upload-zone">
-            <div class="upload-icon">🫁</div>
-            <div class="upload-text">Drag & drop citra rontgen dada<br>atau klik untuk browse</div>
-            <div class="upload-hint">PNG · JPG · JPEG</div>
-        </div>
-        """, unsafe_allow_html=True)
-        run_analysis = False
- 
-    st.markdown("</div>", unsafe_allow_html=True)
- 
-# ─── RIGHT PANEL ────────────────────────────────────────────
+        run_btn = False
+
+
+# ══════════════════════════════════════════════
+# RIGHT COLUMN — Results
+# ══════════════════════════════════════════════
 with right_col:
-    st.markdown('<div style="padding: 28px 28px;">', unsafe_allow_html=True)
- 
+
+    # ── Empty state ──
     if not uploaded_file:
-        # Empty state
         st.markdown("""
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
-                    min-height:70vh; text-align:center; gap:16px;">
-            <div style="font-size:64px; opacity:0.15">🫁</div>
-            <div style="font-family:'JetBrains Mono',monospace; font-size:18px; color:#475569; letter-spacing:-0.5px;">
-                Belum ada citra untuk dianalisis
-            </div>
-            <div style="font-size:13px; color:#334155; max-width:320px; line-height:1.6;">
-                Upload citra rontgen dada (X-Ray) di panel kiri untuk memulai klasifikasi otomatis dan visualisasi Grad-CAM.
+        <div class="empty-state">
+            <div class="empty-icon">🫁</div>
+            <div class="empty-title">Belum ada citra untuk dianalisis</div>
+            <div class="empty-sub">Upload citra rontgen dada (X-Ray) di panel kiri untuk memulai klasifikasi otomatis dan visualisasi Grad-CAM.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Waiting state ──
+    elif not run_btn:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-icon" style="opacity:0.2;">▶</div>
+            <div class="empty-title">Citra siap dianalisis</div>
+            <div class="empty-sub" style="color:#334155;">
+                Klik <span style="color:#00b4d8;font-family:monospace;">▶ Analisis Gambar</span> di panel kiri untuk memulai inferensi.
             </div>
         </div>
         """, unsafe_allow_html=True)
- 
-    elif uploaded_file and not run_analysis:
-        # Preview state — waiting for button click
-        st.markdown("""
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
-                    min-height:70vh; text-align:center; gap:16px;">
-            <div style="font-size:48px; opacity:0.3">▶</div>
-            <div style="font-family:'JetBrains Mono',monospace; font-size:16px; color:#475569;">
-                Citra siap dianalisis
-            </div>
-            <div style="font-size:13px; color:#334155;">
-                Klik tombol <b style="color:#00b4d8;">Analisis Gambar</b> di panel kiri untuk memulai.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
- 
+
+    # ── Run inference ──
     else:
-        # ── RUN INFERENCE ──
-        pil_image = Image.open(uploaded_file).convert("RGB")
+        pil_image  = Image.open(uploaded_file).convert("RGB")
         original_np = np.array(pil_image)
- 
+
         eval_transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
         input_tensor = eval_transform(pil_image).unsqueeze(0)
- 
+
         with st.spinner("Menganalisis struktur citra medis..."):
-            outputs = model(input_tensor)
-            probabilities = torch.softmax(outputs, dim=1).squeeze(0).detach().numpy()
-            pred_class = int(np.argmax(probabilities))
+            outputs      = model(input_tensor)
+            probs        = torch.softmax(outputs, dim=1).squeeze(0).detach().numpy()
+            pred_class   = int(np.argmax(probs))
             target_layer = model.features[-1]
-            gradcam_img = apply_gradcam(model, target_layer, input_tensor, pred_class, original_np)
- 
-        pred_color = CLASS_COLORS[pred_class]
-        pred_conf  = probabilities[pred_class] * 100
- 
-        # ── SECTION: Prediction Result ──
+            gradcam_img  = apply_gradcam(model, target_layer, input_tensor, pred_class, original_np)
+
+        color = CLASS_COLORS[pred_class]
+        conf  = probs[pred_class] * 100
+
+        # ── Prediction Result ──
         st.markdown("""
-        <div class="section-head">
-            <span class="section-title">Prediction Result</span>
-            <div class="section-line"></div>
-        </div>
+        <div class="sechead"><span class="sectl">Prediction Result</span><div class="secline"></div></div>
         """, unsafe_allow_html=True)
- 
-        desc_border = pred_color
-        desc_bg = f"{pred_color}12"
- 
+
         st.markdown(f"""
-        <div class="result-card">
-            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:wrap;">
-                <div>
-                    <div class="result-diagnosis" style="color:{pred_color};">
-                        {CLASS_ICONS[pred_class]} {CLASS_NAMES[pred_class]}
-                    </div>
-                    <div class="result-conf">CONFIDENCE: {pred_conf:.2f}%</div>
-                    <div class="result-desc" style="border-color:{desc_border}; background:{desc_bg}; color:#cbd5e1;">
+        <div class="rcard">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+                <div style="flex:1;">
+                    <div class="rdiag" style="color:{color};">{CLASS_ICONS[pred_class]} {CLASS_NAMES[pred_class]}</div>
+                    <div class="rconf">CONFIDENCE: {conf:.2f}%</div>
+                    <div class="rdesc" style="border-color:{color};background:{color}12;color:#cbd5e1;">
                         {CLASS_DESC[pred_class]}
                     </div>
                 </div>
-                <div style="text-align:right; flex-shrink:0;">
-                    <div style="font-family:'JetBrains Mono',monospace; font-size:42px; font-weight:700;
-                                color:{pred_color}; line-height:1;">{pred_conf:.1f}%</div>
-                    <div style="font-size:11px; color:#475569; letter-spacing:1px; margin-top:4px;">CONFIDENCE SCORE</div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <div style="font-family:var(--mono);font-size:40px;font-weight:700;color:{color};line-height:1;">{conf:.1f}%</div>
+                    <div style="font-size:10px;color:var(--text-3);letter-spacing:1px;margin-top:4px;">CONFIDENCE SCORE</div>
                 </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
- 
-        st.markdown("<div style='margin:24px 0 0 0'></div>", unsafe_allow_html=True)
- 
-        # ── SECTION: Probability Distribution ──
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Probability Distribution ──
         st.markdown("""
-        <div class="section-head">
-            <span class="section-title">Probability Distribution</span>
-            <div class="section-line"></div>
-        </div>
+        <div class="sechead"><span class="sectl">Probability Distribution</span><div class="secline"></div></div>
         """, unsafe_allow_html=True)
- 
-        st.markdown('<div class="result-card">', unsafe_allow_html=True)
-        for class_idx, class_name in CLASS_NAMES.items():
-            prob_pct = probabilities[class_idx] * 100
-            bar_color = PROB_COLORS[class_idx]
-            is_pred = "font-weight:600;" if class_idx == pred_class else ""
+
+        st.markdown('<div class="rcard">', unsafe_allow_html=True)
+        for idx, name in CLASS_NAMES.items():
+            p     = probs[idx] * 100
+            c     = PROB_COLORS[idx]
+            bold  = "font-weight:600;" if idx == pred_class else ""
             st.markdown(f"""
             <div class="prob-row">
-                <div class="prob-label" style="{is_pred}">{class_name}</div>
-                <div class="prob-track">
-                    <div class="prob-fill" style="width:{prob_pct:.1f}%; background:{bar_color};"></div>
-                </div>
-                <div class="prob-pct" style="color:{bar_color}; {is_pred}">{prob_pct:.2f}%</div>
+                <div class="prob-label" style="{bold}">{name}</div>
+                <div class="prob-track"><div class="prob-fill" style="width:{p:.1f}%;background:{c};"></div></div>
+                <div class="prob-pct" style="color:{c};{bold}">{p:.2f}%</div>
             </div>
             """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
- 
-        st.markdown("<div style='margin:24px 0 0 0'></div>", unsafe_allow_html=True)
- 
-        # ── SECTION: Image Visualization ──
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Image Visualization ──
         st.markdown("""
-        <div class="section-head">
-            <span class="section-title">Image Visualization</span>
-            <div class="section-line"></div>
-        </div>
+        <div class="sechead"><span class="sectl">Image Visualization</span><div class="secline"></div></div>
         """, unsafe_allow_html=True)
- 
-        img_col1, img_col2 = st.columns(2, gap="medium")
- 
-        with img_col1:
-            st.markdown("""
-            <div class="img-card">
-                <div class="img-header">
+
+        ic1, ic2 = st.columns(2, gap="medium")
+        with ic1:
+            st.markdown(f"""
+            <div class="icard">
+                <div class="ihdr">
                     <span>Original X-Ray</span>
-                    <span class="img-tag" style="background:#1e2d45; color:#94a3b8;">RAW INPUT</span>
+                    <span class="itag" style="background:#1e2d45;color:#94a3b8;">RAW INPUT</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             st.image(original_np, use_container_width=True)
- 
-        with img_col2:
+
+        with ic2:
             st.markdown(f"""
-            <div class="img-card">
-                <div class="img-header">
+            <div class="icard">
+                <div class="ihdr">
                     <span>Grad-CAM Attention</span>
-                    <span class="img-tag" style="background:{pred_color}18; color:{pred_color};">XAI OUTPUT</span>
+                    <span class="itag" style="background:{color}18;color:{color};">XAI OUTPUT</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             st.image(gradcam_img, use_container_width=True,
                      caption=f"Region of interest → {CLASS_NAMES[pred_class]}")
- 
-    st.markdown("</div>", unsafe_allow_html=True)
